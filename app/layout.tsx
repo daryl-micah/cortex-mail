@@ -9,7 +9,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-slate-950 text-slate-50">
+      <body className="bg-back text-slate-950">
         <Providers>{children}</Providers>
       </body>
     </html>
