@@ -16,3 +16,11 @@ export interface Filters {
   dateRange?: string;
   sender?: string;
 }
+
+export type ComposeState =
+  | 'closed'
+  | 'opening'
+  | 'editing'
+  | 'ai_generating'
+  | 'sending'
+  | 'error';

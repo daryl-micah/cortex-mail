@@ -9,7 +9,7 @@ export default function Sidebar() {
   const dispatch = useDispatch();
 
   return (
-    <aside className="bg-sand border-r p-4 space-y-2">
+    <aside className="border-r p-4 space-y-2">
       <h1 className="text-lg font-semibold mb-4">MailerRoid</h1>
       <NavButton
         label="Inbox"

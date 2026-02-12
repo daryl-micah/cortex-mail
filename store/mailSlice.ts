@@ -8,13 +8,6 @@ interface MailState {
   loading: boolean;
 }
 
-interface ComposeState {
-  to: string;
-  subject: string;
-  body: string;
-  isOpen: boolean;
-}
-
 const initialState: MailState = {
   emails: MOCK_EMAILS,
   filters: {},
