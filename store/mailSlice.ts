@@ -1,3 +1,4 @@
+import { MOCK_EMAILS } from '@/lib/mockEmails';
 import { Email, Filters } from '@/types/mail';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
@@ -15,7 +16,7 @@ interface ComposeState {
 }
 
 const initialState: MailState = {
-  emails: [],
+  emails: MOCK_EMAILS,
   filters: {},
   loading: false,
 };

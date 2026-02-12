@@ -1,14 +1,29 @@
 'use client';
 
-import { RootState } from '@/store';
 import { useSelector } from 'react-redux';
+import { RootState } from '@/store';
+import InboxView from '@/features/InboxView';
+import EmailDetailView from '@/features/EmailDetailView';
+import ComposeView from '@/features/ComposeView';
+import SearchView from '@/features/SearchView';
 
 export default function MainView() {
   const view = useSelector((state: RootState) => state.ui.view);
 
-  return (
-    <main className="p-6">
-      <div className="text-xl font-semibold">{view}</div>
-    </main>
-  );
+  switch (view) {
+    case 'INBOX':
+      return <InboxView />;
+
+    case 'EMAIL_DETAIL':
+      return <EmailDetailView />;
+
+    case 'OPEN_COMPOSE':
+      return <ComposeView />;
+
+    case 'SEARCH':
+      return <SearchView />;
+
+    default:
+      return <InboxView />;
+  }
 }
