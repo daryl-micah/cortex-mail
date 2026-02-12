@@ -1,6 +1,6 @@
 import { RootState } from '@/store';
 import { useSelector } from 'react-redux';
-import EmailList from './mail/EmailList';
+import EmailList from '../mail/components/EmailList';
 import { Inbox } from 'lucide-react';
 
 export default function InboxView() {

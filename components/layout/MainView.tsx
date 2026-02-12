@@ -2,10 +2,10 @@
 
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
-import InboxView from '@/features/InboxView';
-import EmailDetailView from '@/features/EmailDetailView';
-import ComposeView from '@/features/ComposeView';
-import SearchView from '@/features/SearchView';
+import InboxView from '@/features/mail/InboxView';
+import EmailDetailView from '@/features/mail/EmailDetailView';
+import ComposeView from '@/features/mail/ComposeView';
+import SearchView from '@/features/mail/SearchView';
 
 export default function MainView() {
   const view = useSelector((state: RootState) => state.ui.view);
