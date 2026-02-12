@@ -2,7 +2,7 @@
 
 import { useDispatch } from 'react-redux';
 import NavButton from './NavButton';
-import { composeEmail, setView } from '@/store/uiSlice';
+import { openCompose, setView } from '@/store/uiSlice';
 import { Inbox, Pencil, Search } from 'lucide-react';
 
 export default function Sidebar() {
@@ -19,7 +19,7 @@ export default function Sidebar() {
       <NavButton
         icon={<Pencil />}
         label="Compose"
-        onClick={() => dispatch(composeEmail())}
+        onClick={() => dispatch(openCompose())}
       />
       <NavButton
         icon={<Search />}

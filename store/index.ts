@@ -1,9 +1,11 @@
 import { configureStore } from '@reduxjs/toolkit';
 import uiReducer from './uiSlice';
+import mailReducer from './mailSlice';
 
 export const store = configureStore({
   reducer: {
     ui: uiReducer,
+    mail: mailReducer,
   },
 });
 
