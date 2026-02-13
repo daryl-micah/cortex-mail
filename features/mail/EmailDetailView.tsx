@@ -27,7 +27,7 @@ export default function EmailDetailView() {
   };
 
   return (
-    <div className="max-w-full space-y-4">
+    <div className="max-w-3xl p-4 space-y-4">
       <div className="flex gap-2">
         <Button onClick={handleBack} variant="ghost">
           Back

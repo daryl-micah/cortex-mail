@@ -1,13 +1,16 @@
 'use client';
 
-import { useAppSelector } from '@/store';
+import { useAppSelector, useAppDispatch } from '@/store';
 import EmailList from '../mail/components/EmailList';
-import { Inbox } from 'lucide-react';
+import { Inbox, X } from 'lucide-react';
 import { useMemo } from 'react';
+import { Button } from '@/components/ui/button';
+import { setFilters } from '@/store/mailSlice';
 
 export default function InboxView() {
   const emails = useAppSelector((state) => state.mail.emails);
   const filters = useAppSelector((state) => state.mail.filters);
+  const dispatch = useAppDispatch();
 
   const filteredEmails = useMemo(() => {
     let result = [...emails];
@@ -32,11 +35,25 @@ export default function InboxView() {
 
   return (
     <div className="max-w-full p-4">
-      <div className="flex flex-row space-x-2 items-center">
-        <Inbox className="w-6 h-6 mb-3 text-blue-600" />
-        <h1 className="text-2xl font-bold mb-4">Inbox</h1>
+      <div className="flex flex-row space-x-2 items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Inbox className="w-6 h-6 mb-4 text-red-600" />
+          <h1 className="text-2xl font-bold mb-4">Inbox</h1>
+        </div>
         {Object.keys(filters).length > 0 && (
-          <span className="text-sm text-muted-foreground mb-3">(filtered)</span>
+          <div className="flex flex-row items-center space-x-1">
+            <Button
+              className="hover:bg-red-100"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                dispatch(setFilters({}));
+              }}
+            >
+              <X className="cursor-pointer" />
+            </Button>
+            <span className="text-sm text-muted-foreground">(filtered)</span>
+          </div>
         )}
       </div>
       <EmailList emails={filteredEmails} />

@@ -13,11 +13,11 @@ export default function Sidebar() {
       <h1 className="text-lg font-semibold mb-4">MailerRoid</h1>
       <NavButton
         label="Inbox"
-        icon={<Inbox />}
+        icon={<Inbox className="text-red-600" />}
         onClick={() => dispatch(setView('INBOX'))}
       />
       <NavButton
-        icon={<Pencil />}
+        icon={<Pencil className="text-blue-600" />}
         label="Compose"
         onClick={() => dispatch(openCompose())}
       />

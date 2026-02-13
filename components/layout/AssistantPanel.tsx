@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { dispatchAssistantAction } from '@/lib/assistantDispatcher';
 import { useAppSelector } from '@/store';
-import { Send } from 'lucide-react';
+import { MessageSquareOff, Send } from 'lucide-react';
 import { useState } from 'react';
 import type { AssistantAction } from '@/types/assistant';
 
@@ -102,11 +102,23 @@ export default function AssistantPanel() {
 
   return (
     <aside className="border-l border-border h-full flex flex-col bg-background">
-      <div className="p-4 border-b">
-        <h2 className="text-sm font-semibold">AI Assistant</h2>
-        <p className="text-xs text-muted-foreground mt-1">
-          I can help you manage emails
-        </p>
+      <div className="flex flex-row justify-between p-4 border-b">
+        <div>
+          <h2 className="text-sm font-semibold">AI Assistant</h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            I can help you manage emails
+          </p>
+        </div>
+        {messages.length > 0 && (
+          <Button
+            variant="ghost"
+            className="hover:bg-red-100"
+            onClick={() => setMessages([])}
+          >
+            Clear
+            <MessageSquareOff />
+          </Button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3">

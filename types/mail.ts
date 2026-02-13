@@ -15,6 +15,7 @@ export interface Filters {
   unread?: boolean;
   dateRange?: string;
   sender?: string;
+  clear?: boolean;
 }
 
 export type ComposeState =

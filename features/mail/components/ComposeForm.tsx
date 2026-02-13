@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { setCompose, sendEmail, clearCompose } from '@/store/mailSlice';
 import { setView } from '@/store/uiSlice';
+import { Pencil } from 'lucide-react';
 
 export default function ComposeForm() {
   const dispatch = useAppDispatch();
@@ -25,9 +26,12 @@ export default function ComposeForm() {
   return (
     <div className="flex flex-col h-full">
       <header className="p-3 border-b flex justify-between items-center">
-        <span className="font-semibold">New Message</span>
+        <span className="font-semibold">
+          {' '}
+          <Pencil className="inline-block mr-2 h-5 text-blue-600" /> New Message
+        </span>
         <Button
-          className="w-8 h-8"
+          className="w-8 h-8 hover:bg-red-100"
           variant="ghost"
           size="sm"
           onClick={handleClose}
@@ -51,7 +55,7 @@ export default function ComposeForm() {
       </div>
 
       <textarea
-        className="flex-1 p-3 resize-none bg-background border-0 focus:outline-none"
+        className="flex-1 p-3 resize-none bg-background border-0 focus:outline-none min-h-72 min-w-2xl"
         placeholder="Write your message..."
         value={compose.body}
         onChange={(e) => dispatch(setCompose({ body: e.target.value }))}
