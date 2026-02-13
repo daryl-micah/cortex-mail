@@ -1,17 +1,20 @@
-import { RootState } from '@/store';
-import { useSelector } from 'react-redux';
+'use client';
+
+import { useAppSelector } from '@/store';
 import ComposeForm from './components/ComposeForm';
 
 export default function ComposeView() {
-  const { viewState } = useSelector((state: RootState) => state.compose);
+  const view = useAppSelector((state) => state.ui.view);
 
-  if (viewState === 'closed') {
+  if (view !== 'OPEN_COMPOSE') {
     return null;
   }
 
   return (
-    <div className="fixed bottom-0 right-0 w-120 h-130 border bg-background shadow-xl">
-      <ComposeForm />
+    <div className="max-w-3xl mx-auto p-6">
+      <div className="border rounded-lg shadow-lg bg-card overflow-hidden">
+        <ComposeForm />
+      </div>
     </div>
   );
 }

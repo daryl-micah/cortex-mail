@@ -1,53 +1,67 @@
+'use client';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { RootState } from '@/store';
-import { closeCompose, sendingMail, updateDraft } from '@/store/composeSlice';
-import { useDispatch, useSelector } from 'react-redux';
+import { useAppDispatch, useAppSelector } from '@/store';
+import { setCompose, sendEmail, clearCompose } from '@/store/mailSlice';
+import { setView } from '@/store/uiSlice';
 
 export default function ComposeForm() {
-  const dispatch = useDispatch();
-  const { draft, viewState } = useSelector((state: RootState) => state.compose);
+  const dispatch = useAppDispatch();
+  const compose = useAppSelector((state) => state.mail.compose);
+
+  const handleSend = () => {
+    if (compose.to && compose.subject) {
+      dispatch(sendEmail());
+      dispatch(setView('INBOX'));
+    }
+  };
+
+  const handleClose = () => {
+    dispatch(clearCompose());
+    dispatch(setView('INBOX'));
+  };
 
   return (
     <div className="flex flex-col h-full">
-      <header className="p-3 border-b flex justify-between">
-        <span>New Message</span>
+      <header className="p-3 border-b flex justify-between items-center">
+        <span className="font-semibold">New Message</span>
         <Button
-          className="w-8 h-8 text-black"
-          variant="secondary"
-          onClick={() => dispatch(closeCompose())}
+          className="w-8 h-8"
+          variant="ghost"
+          size="sm"
+          onClick={handleClose}
         >
-          X
+          ✕
         </Button>
       </header>
 
       <div className="p-3 space-y-2">
         <Input
           placeholder="To"
-          value={draft.to}
-          onChange={(e) => dispatch(updateDraft({ to: e.target.value }))}
+          value={compose.to}
+          onChange={(e) => dispatch(setCompose({ to: e.target.value }))}
         />
 
         <Input
           placeholder="Subject"
-          value={draft.subject}
-          onChange={(e) => dispatch(updateDraft({ subject: e.target.value }))}
+          value={compose.subject}
+          onChange={(e) => dispatch(setCompose({ subject: e.target.value }))}
         />
       </div>
 
-      <Textarea
-        className="flex-1 p-2"
+      <textarea
+        className="flex-1 p-3 resize-none bg-background border-0 focus:outline-none"
         placeholder="Write your message..."
-        value={draft.body}
-        onChange={(e) => dispatch(updateDraft({ body: e.target.value }))}
+        value={compose.body}
+        onChange={(e) => dispatch(setCompose({ body: e.target.value }))}
       />
 
       <footer className="p-3 border-t flex justify-between">
-        <Button
-          disabled={viewState === 'sending'}
-          onClick={() => dispatch(sendingMail())}
-        >
+        <Button variant="outline" onClick={handleClose}>
+          Discard
+        </Button>
+        <Button disabled={!compose.to || !compose.subject} onClick={handleSend}>
           Send
         </Button>
       </footer>

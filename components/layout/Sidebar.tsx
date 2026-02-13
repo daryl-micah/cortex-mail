@@ -1,12 +1,12 @@
 'use client';
 
-import { useDispatch } from 'react-redux';
+import { useAppDispatch } from '@/store';
 import NavButton from './NavButton';
 import { openCompose, setView } from '@/store/uiSlice';
 import { Inbox, Pencil, Search } from 'lucide-react';
 
 export default function Sidebar() {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   return (
     <aside className="border-r p-4 space-y-2">

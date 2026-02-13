@@ -4,13 +4,13 @@ import { Button } from '@/components/ui/button';
 import { RootState } from '@/store';
 import { markAsRead } from '@/store/mailSlice';
 import { setView } from '@/store/uiSlice';
-import { useDispatch, useSelector } from 'react-redux';
+import { useAppDispatch, useAppSelector } from '@/store';
 
 export default function EmailDetailView() {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
-  const { selectedEmailId } = useSelector((state: RootState) => state.ui);
-  const email = useSelector((state: RootState) =>
+  const { selectedEmailId } = useAppSelector((state: RootState) => state.ui);
+  const email = useAppSelector((state: RootState) =>
     state.mail.emails.find((e) => e.id === selectedEmailId)
   );
 

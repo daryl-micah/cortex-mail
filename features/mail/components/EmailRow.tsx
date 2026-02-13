@@ -3,14 +3,14 @@
 import { cn } from '@/lib/utils';
 import { openEmail } from '@/store/uiSlice';
 import { Email } from '@/types/mail';
-import { useDispatch } from 'react-redux';
+import { useAppDispatch } from '@/store';
 
 interface Props {
   email: Email;
 }
 
 export default function EmailRow({ email }: Props) {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   return (
     <div

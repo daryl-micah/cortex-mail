@@ -1,6 +1,6 @@
 'use client';
 
-import { useSelector } from 'react-redux';
+import { useAppSelector } from '@/store';
 import { RootState } from '@/store';
 import InboxView from '@/features/mail/InboxView';
 import EmailDetailView from '@/features/mail/EmailDetailView';
@@ -8,7 +8,7 @@ import ComposeView from '@/features/mail/ComposeView';
 import SearchView from '@/features/mail/SearchView';
 
 export default function MainView() {
-  const view = useSelector((state: RootState) => state.ui.view);
+  const view = useAppSelector((state: RootState) => state.ui.view);
 
   switch (view) {
     case 'INBOX':
