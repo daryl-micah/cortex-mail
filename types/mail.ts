@@ -5,10 +5,21 @@ export interface Email {
   subject: string;
   preview: string;
   body: string;
+  htmlBody?: string; // HTML version of email body
 
   date: string;
 
   unread: boolean;
+  attachments?: EmailAttachment[];
+}
+
+export interface EmailAttachment {
+  attachmentId: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+  isInline?: boolean;
+  contentId?: string; // For inline images (CID)
 }
 
 export interface Filters {

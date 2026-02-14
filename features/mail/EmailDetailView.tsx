@@ -5,6 +5,7 @@ import { RootState } from '@/store';
 import { markAsRead } from '@/store/mailSlice';
 import { setView } from '@/store/uiSlice';
 import { useAppDispatch, useAppSelector } from '@/store';
+import { useMemo } from 'react';
 
 export default function EmailDetailView() {
   const dispatch = useAppDispatch();
@@ -13,6 +14,24 @@ export default function EmailDetailView() {
   const email = useAppSelector((state: RootState) =>
     state.mail.emails.find((e) => e.id === selectedEmailId)
   );
+
+  // Replace CID references with attachment URLs
+  const processedHtmlBody = useMemo(() => {
+    if (!email?.htmlBody || !email?.attachments) return email?.htmlBody;
+
+    let html = email.htmlBody;
+
+    // Replace cid: references with actual attachment URLs
+    email.attachments.forEach((attachment) => {
+      if (attachment.contentId && attachment.isInline) {
+        const cidPattern = new RegExp(`cid:${attachment.contentId}`, 'gi');
+        const attachmentUrl = `/api/emails/attachment?messageId=${email.id}&attachmentId=${attachment.attachmentId}&mimeType=${encodeURIComponent(attachment.mimeType)}`;
+        html = html.replace(cidPattern, attachmentUrl);
+      }
+    });
+
+    return html;
+  }, [email]);
 
   if (!email) {
     return <div className="text-muted-foreground">Email not found</div>;
@@ -44,7 +63,26 @@ export default function EmailDetailView() {
 
         <h2 className="text-xl font-semibold">{email.subject}</h2>
 
-        <div className="text-sm whitespace-pre-wrap">{email.body}</div>
+        {email.htmlBody ? (
+          <iframe
+            srcDoc={processedHtmlBody}
+            sandbox="allow-same-origin"
+            className="w-full min-h-[400px] border-0"
+            style={{
+              colorScheme: 'light dark',
+            }}
+            onLoad={(e) => {
+              const iframe = e.target as HTMLIFrameElement;
+              if (iframe.contentWindow) {
+                // Auto-resize iframe to content height
+                const height = iframe.contentWindow.document.body.scrollHeight;
+                iframe.style.height = `${height + 20}px`;
+              }
+            }}
+          />
+        ) : (
+          <div className="text-sm whitespace-pre-wrap">{email.body}</div>
+        )}
       </div>
     </div>
   );

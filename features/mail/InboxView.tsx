@@ -3,16 +3,76 @@
 import { useAppSelector, useAppDispatch } from '@/store';
 import EmailList from '../mail/components/EmailList';
 import { Inbox, X } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { setFilters } from '@/store/mailSlice';
+import {
+  setFilters,
+  appendEmails,
+  setLoadingMore,
+  setError,
+} from '@/store/mailSlice';
 
 export default function InboxView() {
   const emails = useAppSelector((state) => state.mail.emails);
   const filters = useAppSelector((state) => state.mail.filters);
   const loading = useAppSelector((state) => state.mail.loading);
+  const loadingMore = useAppSelector((state) => state.mail.loadingMore);
+  const nextPageToken = useAppSelector((state) => state.mail.nextPageToken);
+  const hasMore = useAppSelector((state) => state.mail.hasMore);
   const error = useAppSelector((state) => state.mail.error);
   const dispatch = useAppDispatch();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const loadingRef = useRef(false);
+
+  const loadMoreEmails = useCallback(async () => {
+    if (!hasMore || loadingRef.current || !nextPageToken) return;
+
+    loadingRef.current = true;
+    dispatch(setLoadingMore(true));
+
+    try {
+      const response = await fetch(
+        `/api/emails/inbox?pageToken=${nextPageToken}&maxResults=20`
+      );
+      const data = await response.json();
+
+      if (response.ok) {
+        dispatch(
+          appendEmails({
+            emails: data.emails,
+            nextPageToken: data.nextPageToken,
+          })
+        );
+      } else {
+        dispatch(setError(data.error || 'Failed to load more emails'));
+      }
+    } catch (err) {
+      dispatch(setError('Failed to load more emails'));
+    } finally {
+      loadingRef.current = false;
+    }
+  }, [dispatch, hasMore, nextPageToken]);
+
+  const handleScroll = useCallback(() => {
+    if (!scrollContainerRef.current || loadingRef.current) return;
+
+    const { scrollTop, scrollHeight, clientHeight } =
+      scrollContainerRef.current;
+    const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
+
+    // Load more when scrolled to 80% of the content
+    if (scrollPercentage > 0.8 && hasMore) {
+      loadMoreEmails();
+    }
+  }, [hasMore, loadMoreEmails]);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
 
   const filteredEmails = useMemo(() => {
     let result = [...emails];
@@ -36,7 +96,10 @@ export default function InboxView() {
   }, [emails, filters]);
 
   return (
-    <div className="max-w-full max-h-screen overflow-y-auto p-4">
+    <div
+      ref={scrollContainerRef}
+      className="max-w-full max-h-screen overflow-y-auto p-4"
+    >
       <div className="flex flex-row space-x-2 items-center justify-between">
         <div className="flex items-center space-x-2">
           <Inbox className="w-6 h-6 mb-4 text-red-600" />
@@ -72,7 +135,19 @@ export default function InboxView() {
           No emails found
         </div>
       ) : (
-        <EmailList emails={filteredEmails} />
+        <>
+          <EmailList emails={filteredEmails} />
+          {loadingMore && (
+            <div className="text-center py-4 text-sm text-muted-foreground">
+              Loading more emails...
+            </div>
+          )}
+          {!hasMore && emails.length > 0 && (
+            <div className="text-center py-4 text-sm text-muted-foreground">
+              No more emails to load
+            </div>
+          )}
+        </>
       )}
     </div>
   );

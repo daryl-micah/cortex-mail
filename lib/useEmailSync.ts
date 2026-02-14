@@ -22,7 +22,12 @@ export function useEmailSync() {
       }
 
       const data = await response.json();
-      dispatch(setEmails(data.emails || []));
+      dispatch(
+        setEmails({
+          emails: data.emails || [],
+          nextPageToken: data.nextPageToken,
+        })
+      );
     } catch (error) {
       console.error('Error fetching inbox:', error);
       dispatch(setError('Failed to load emails'));

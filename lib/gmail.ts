@@ -22,7 +22,11 @@ export function getGmailClient(session: Session) {
 /**
  * Fetch emails from Gmail
  */
-export async function fetchEmails(session: Session, maxResults = 20) {
+export async function fetchEmails(
+  session: Session,
+  maxResults = 20,
+  pageToken?: string
+) {
   const gmail = getGmailClient(session);
 
   try {
@@ -31,6 +35,7 @@ export async function fetchEmails(session: Session, maxResults = 20) {
       userId: 'me',
       maxResults,
       labelIds: ['INBOX'],
+      pageToken: pageToken,
     });
 
     const messages = response.data.messages || [];
@@ -48,34 +53,83 @@ export async function fetchEmails(session: Session, maxResults = 20) {
         headers.find((h) => h.name?.toLowerCase() === name.toLowerCase())
           ?.value || '';
 
-      // Get email body
+      // Get email body (both plain text and HTML)
       let body = '';
+      let htmlBody = '';
+      const attachments: any[] = [];
+
+      // Recursive function to extract body and attachments from parts
+      const extractContent = (parts: any[]) => {
+        for (const part of parts) {
+          if (part.parts) {
+            // Recursively handle multipart
+            extractContent(part.parts);
+          } else if (
+            part.mimeType === 'text/plain' &&
+            !body &&
+            part.body?.data
+          ) {
+            body = Buffer.from(part.body.data, 'base64').toString('utf-8');
+          } else if (part.mimeType === 'text/html' && part.body?.data) {
+            htmlBody = Buffer.from(part.body.data, 'base64').toString('utf-8');
+          } else if (part.filename && part.body?.attachmentId) {
+            // Handle attachments (including inline images)
+            attachments.push({
+              attachmentId: part.body.attachmentId,
+              filename: part.filename,
+              mimeType: part.mimeType || 'application/octet-stream',
+              size: part.body.size || 0,
+              isInline: part.headers?.some(
+                (h: any) =>
+                  h.name.toLowerCase() === 'content-disposition' &&
+                  h.value.includes('inline')
+              ),
+              contentId: part.headers
+                ?.find((h: any) => h.name.toLowerCase() === 'content-id')
+                ?.value?.replace(/[<>]/g, ''),
+            });
+          }
+        }
+      };
+
       const parts = msg.data.payload?.parts || [];
       if (parts.length > 0) {
-        const textPart = parts.find((part) => part.mimeType === 'text/plain');
-        if (textPart?.body?.data) {
-          body = Buffer.from(textPart.body.data, 'base64').toString('utf-8');
-        }
+        extractContent(parts);
       } else if (msg.data.payload?.body?.data) {
-        body = Buffer.from(msg.data.payload.body.data, 'base64').toString(
-          'utf-8'
-        );
+        // Simple message without parts
+        const mimeType = msg.data.payload.mimeType;
+        const bodyData = Buffer.from(
+          msg.data.payload.body.data,
+          'base64'
+        ).toString('utf-8');
+        if (mimeType === 'text/html') {
+          htmlBody = bodyData;
+        } else {
+          body = bodyData;
+        }
       }
 
       return {
         id: msg.data.id!,
         from: getHeader('From'),
         subject: getHeader('Subject'),
-        preview: body.substring(0, 100),
+        preview:
+          body.substring(0, 100) ||
+          htmlBody.replace(/<[^>]*>/g, '').substring(0, 100),
         body: body,
+        htmlBody: htmlBody || undefined,
         date: new Date(parseInt(msg.data.internalDate || '0')).toLocaleString(),
         unread: msg.data.labelIds?.includes('UNREAD') || false,
         threadId: msg.data.threadId,
+        attachments: attachments.length > 0 ? attachments : undefined,
       };
     });
 
     const emails = await Promise.all(emailPromises);
-    return emails;
+    return {
+      emails,
+      nextPageToken: response.data.nextPageToken,
+    };
   } catch (error) {
     console.error('Error fetching emails:', error);
     throw new Error('Failed to fetch emails from Gmail');

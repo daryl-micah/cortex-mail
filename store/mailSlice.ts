@@ -12,8 +12,11 @@ interface MailState {
   sentEmails: Email[];
   filters: Filters;
   loading: boolean;
+  loadingMore: boolean;
   error: string | null;
   compose: ComposeState;
+  nextPageToken: string | null;
+  hasMore: boolean;
 }
 
 const initialState: MailState = {
@@ -21,22 +24,44 @@ const initialState: MailState = {
   sentEmails: [],
   filters: {},
   loading: false,
+  loadingMore: false,
   error: null,
   compose: {
     to: '',
     subject: '',
     body: '',
   },
+  nextPageToken: null,
+  hasMore: true,
 };
 
 const mailSlice = createSlice({
   name: 'mail',
   initialState,
   reducers: {
-    setEmails(state, action: PayloadAction<Email[]>) {
-      state.emails = action.payload;
+    setEmails(
+      state,
+      action: PayloadAction<{ emails: Email[]; nextPageToken?: string }>
+    ) {
+      state.emails = action.payload.emails;
+      state.nextPageToken = action.payload.nextPageToken || null;
+      state.hasMore = !!action.payload.nextPageToken;
       state.loading = false;
+      state.loadingMore = false;
       state.error = null;
+    },
+    appendEmails(
+      state,
+      action: PayloadAction<{ emails: Email[]; nextPageToken?: string }>
+    ) {
+      state.emails = [...state.emails, ...action.payload.emails];
+      state.nextPageToken = action.payload.nextPageToken || null;
+      state.hasMore = !!action.payload.nextPageToken;
+      state.loadingMore = false;
+      state.error = null;
+    },
+    setLoadingMore(state, action: PayloadAction<boolean>) {
+      state.loadingMore = action.payload;
     },
     setSentEmails(state, action: PayloadAction<Email[]>) {
       state.sentEmails = action.payload;
@@ -74,8 +99,10 @@ const mailSlice = createSlice({
 
 export const {
   setEmails,
+  appendEmails,
   setSentEmails,
   setLoading,
+  setLoadingMore,
   setError,
   markAsRead,
   setFilters,
