@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { auth } from '@/auth';
 import { getGmailClient } from '@/lib/gmail';
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession();
+  const session = await auth();
 
-  if (!session) {
+  if (!session || !session.accessToken) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
