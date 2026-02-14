@@ -101,7 +101,7 @@ export default function AssistantPanel() {
   };
 
   return (
-    <aside className="border-l border-border h-full flex flex-col bg-background">
+    <aside className="border-l border-border h-screen flex flex-col bg-background">
       <div className="flex flex-row justify-between p-4 border-b">
         <div>
           <h2 className="text-sm font-semibold">AI Assistant</h2>
