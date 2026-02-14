@@ -10,6 +10,8 @@ import { setFilters } from '@/store/mailSlice';
 export default function InboxView() {
   const emails = useAppSelector((state) => state.mail.emails);
   const filters = useAppSelector((state) => state.mail.filters);
+  const loading = useAppSelector((state) => state.mail.loading);
+  const error = useAppSelector((state) => state.mail.error);
   const dispatch = useAppDispatch();
 
   const filteredEmails = useMemo(() => {
@@ -34,7 +36,7 @@ export default function InboxView() {
   }, [emails, filters]);
 
   return (
-    <div className="max-w-full p-4">
+    <div className="max-w-full max-h-screen overflow-y-auto p-4">
       <div className="flex flex-row space-x-2 items-center justify-between">
         <div className="flex items-center space-x-2">
           <Inbox className="w-6 h-6 mb-4 text-red-600" />
@@ -56,7 +58,22 @@ export default function InboxView() {
           </div>
         )}
       </div>
-      <EmailList emails={filteredEmails} />
+
+      {error && (
+        <div className="text-red-600 bg-red-50 p-3 rounded mb-4">{error}</div>
+      )}
+
+      {loading ? (
+        <div className="text-center py-8 text-muted-foreground">
+          Loading emails...
+        </div>
+      ) : emails.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          No emails found
+        </div>
+      ) : (
+        <EmailList emails={filteredEmails} />
+      )}
     </div>
   );
 }

@@ -1,6 +1,11 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-export type ViewMode = 'INBOX' | 'EMAIL_DETAIL' | 'OPEN_COMPOSE' | 'SEARCH';
+export type ViewMode =
+  | 'INBOX'
+  | 'SENT'
+  | 'EMAIL_DETAIL'
+  | 'OPEN_COMPOSE'
+  | 'SEARCH';
 
 export interface UIState {
   view: ViewMode;

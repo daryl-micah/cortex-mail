@@ -3,7 +3,7 @@
 import { useAppDispatch } from '@/store';
 import NavButton from './NavButton';
 import { openCompose, setView } from '@/store/uiSlice';
-import { Inbox, Pencil, Search, LogOut } from 'lucide-react';
+import { Inbox, Pencil, Search, LogOut, Send } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 
@@ -19,6 +19,11 @@ export default function Sidebar() {
           label="Inbox"
           icon={<Inbox className="text-red-600" />}
           onClick={() => dispatch(setView('INBOX'))}
+        />
+        <NavButton
+          label="Sent"
+          icon={<Send className="text-green-600" />}
+          onClick={() => dispatch(setView('SENT'))}
         />
         <NavButton
           icon={<Pencil className="text-blue-600" />}
