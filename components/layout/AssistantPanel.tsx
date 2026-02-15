@@ -138,10 +138,10 @@ export default function AssistantPanel() {
         {messages.length > 0 && (
           <Button
             variant="ghost"
-            className="hover:bg-red-100"
+            className="hover:bg-red-100 cursor-pointer"
+            title="Clear Chat"
             onClick={() => setMessages([])}
           >
-            Clear
             <MessageSquareOff />
           </Button>
         )}

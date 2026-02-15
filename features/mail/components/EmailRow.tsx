@@ -55,7 +55,7 @@ export default function EmailRow({ email }: Props) {
             <Button
               size="sm"
               variant="ghost"
-              className="h-6 w-6 p-0"
+              className="h-6 w-6 p-0 cursor-pointer"
               onClick={handleMarkAsRead}
               disabled={marking}
               title="Mark as read"
