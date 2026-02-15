@@ -22,7 +22,10 @@ Available actions:
    { "type": "SEND_EMAIL" }
 
 4. FILTER_EMAILS - Filter emails by criteria
-   { "type": "FILTER_EMAILS", "payload": { "unread": true, "dateRange": "last7days", "sender": "john@example.com" } }
+   { "type": "FILTER_EMAILS", "payload": { "unread": true, "dateRange": "last-7-days", "sender": "john@example.com" } }
+   
+   Valid dateRange values: "today", "yesterday", "last-7-days", "last-30-days", "last-3-months"
+   Use unread: true for unread only, unread: false for read only, or omit for all
 
 5. OPEN_EMAIL - Open a specific email by ID
    { "type": "OPEN_EMAIL", "payload": { "id": "email-id" } }

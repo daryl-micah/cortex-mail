@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { setFilters } from '@/store/mailSlice';
 import { Filter, X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function FilterPanel() {
   const dispatch = useAppDispatch();
@@ -16,6 +16,12 @@ export default function FilterPanel() {
   const [unreadOnly, setUnreadOnly] = useState(filters.unread || false);
   const [dateRange, setDateRange] = useState(filters.dateRange || '');
 
+  useEffect(() => {
+    setSender(filters.sender || '');
+    setUnreadOnly(filters.unread || false);
+    setDateRange(filters.dateRange || '');
+  }, [filters]);
+
   const applyFilters = () => {
     dispatch(
       setFilters({
@@ -24,6 +30,12 @@ export default function FilterPanel() {
         dateRange: dateRange || undefined,
       })
     );
+
+    console.log('Applied filters:', {
+      sender: sender || undefined,
+      unread: unreadOnly || undefined,
+      dateRange: dateRange || undefined,
+    });
     setShowPanel(false);
   };
 
