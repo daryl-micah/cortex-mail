@@ -1,4 +1,5 @@
-# Cortex Mail
+# AI Email Client
+
 AI-powered mail application where the assistant controls the UI. Built with Next.js, Gmail API, and Groq LLM.
 
 **Live Demo**: https://cortex-mail-azure.vercel.app
@@ -57,10 +58,6 @@ Implemented 30-second polling instead of Gmail push notifications. Push requires
 ### Iframe for Email Rendering
 
 HTML emails render in sandboxed iframes instead of using DOMPurify. Handles inline images by mapping CID references to attachment URLs via a proxy endpoint. Iframe sandboxing (`allow-same-origin` only) is simpler and more secure than sanitizing. Auto-resizes to content height.
-
-### Cursor-Based Pagination
-
-Used Gmail's native pageToken for infinite scroll instead of offset-based. Triggers at 80% scroll depth. Avoids the "load everything" anti-pattern while keeping initial load fast. Could've added virtual scrolling but 20 emails per page is reasonable for most inboxes.
 
 ### No Streaming for Assistant
 
