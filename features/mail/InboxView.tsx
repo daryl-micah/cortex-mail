@@ -2,6 +2,7 @@
 
 import { useAppSelector, useAppDispatch } from '@/store';
 import EmailList from '../mail/components/EmailList';
+import FilterPanel from '../mail/components/FilterPanel';
 import { Inbox, X } from 'lucide-react';
 import { useMemo, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -88,8 +89,32 @@ export default function InboxView() {
     }
 
     if (filters.dateRange) {
-      // For now, just show all emails for date filters
-      // In production, you'd parse the date properly
+      const now = new Date();
+      const filterDate = new Date();
+
+      switch (filters.dateRange) {
+        case 'today':
+          filterDate.setHours(0, 0, 0, 0);
+          break;
+        case 'yesterday':
+          filterDate.setDate(now.getDate() - 1);
+          filterDate.setHours(0, 0, 0, 0);
+          break;
+        case 'last-7-days':
+          filterDate.setDate(now.getDate() - 7);
+          break;
+        case 'last-30-days':
+          filterDate.setDate(now.getDate() - 30);
+          break;
+        case 'last-3-months':
+          filterDate.setMonth(now.getMonth() - 3);
+          break;
+      }
+
+      result = result.filter((email) => {
+        const emailDate = new Date(email.date);
+        return emailDate >= filterDate;
+      });
     }
 
     return result;
@@ -105,21 +130,24 @@ export default function InboxView() {
           <Inbox className="w-6 h-6 mb-4 text-red-600" />
           <h1 className="text-2xl font-bold mb-4">Inbox</h1>
         </div>
-        {Object.keys(filters).length > 0 && (
-          <div className="flex flex-row items-center space-x-1">
-            <Button
-              className="hover:bg-red-100"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                dispatch(setFilters({}));
-              }}
-            >
-              <X className="cursor-pointer" />
-            </Button>
-            <span className="text-sm text-muted-foreground">(filtered)</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <FilterPanel />
+          {Object.keys(filters).length > 0 && (
+            <div className="flex flex-row items-center space-x-1">
+              <Button
+                className="hover:bg-red-100"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  dispatch(setFilters({}));
+                }}
+              >
+                <X className="cursor-pointer" />
+              </Button>
+              <span className="text-sm text-muted-foreground">(filtered)</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {error && (
