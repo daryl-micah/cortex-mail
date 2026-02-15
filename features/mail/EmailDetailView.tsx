@@ -41,8 +41,20 @@ export default function EmailDetailView() {
     dispatch(setView('INBOX'));
   };
 
-  const handleMarkAsRead = () => {
-    dispatch(markAsRead(email.id));
+  const handleMarkAsRead = async () => {
+    try {
+      const response = await fetch('/api/emails/mark-read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messageId: email.id }),
+      });
+
+      if (response.ok) {
+        dispatch(markAsRead(email.id));
+      }
+    } catch (error) {
+      console.error('Failed to mark as read:', error);
+    }
   };
 
   return (
