@@ -60,7 +60,7 @@ export default function FilterPanel() {
         <Filter className="h-4 w-4" />
         Filter
         {hasActiveFilters && (
-          <span className="ml-1 bg-primary-foreground text-primary rounded-full px-2 text-xs">
+          <span className="ml-1 bg-primary-foreground text-foreground rounded-full px-2 text-xs">
             {Object.keys(filters).length}
           </span>
         )}
@@ -94,16 +94,28 @@ export default function FilterPanel() {
                 Date Range
               </label>
               <select
-                className="w-full px-3 py-2 border rounded-md text-sm"
+                className="w-full px-3 py-2 border bg-accent rounded-md text-sm text-foreground"
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
               >
-                <option value="">All dates</option>
-                <option value="today">Today</option>
-                <option value="yesterday">Yesterday</option>
-                <option value="last-7-days">Last 7 days</option>
-                <option value="last-30-days">Last 30 days</option>
-                <option value="last-3-months">Last 3 months</option>
+                <option className="bg-slate-800" value="">
+                  All dates
+                </option>
+                <option className="bg-slate-800" value="today">
+                  Today
+                </option>
+                <option className="bg-slate-800" value="yesterday">
+                  Yesterday
+                </option>
+                <option className="bg-slate-800" value="last-7-days">
+                  Last 7 days
+                </option>
+                <option className="bg-slate-800" value="last-30-days">
+                  Last 30 days
+                </option>
+                <option className="bg-slate-800" value="last-3-months">
+                  Last 3 months
+                </option>
               </select>
             </div>
 
