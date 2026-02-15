@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import ConfirmSendDialog from '@/components/ui/ConfirmSendDialog';
 import { dispatchAssistantAction } from '@/lib/assistantDispatcher';
 import { useAppSelector } from '@/store';
 import { MessageSquareOff, Send } from 'lucide-react';
@@ -17,11 +18,13 @@ export default function AssistantPanel() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const emails = useAppSelector((state) => state.mail.emails);
   const filters = useAppSelector((state) => state.mail.filters);
   const currentView = useAppSelector((state) => state.ui.view);
   const selectedEmailId = useAppSelector((state) => state.ui.selectedEmailId);
+  const compose = useAppSelector((state) => state.mail.compose);
 
   const handleSendMessage = async () => {
     if (!input.trim() || loading) return;
@@ -58,9 +61,18 @@ export default function AssistantPanel() {
       if (data.actions && Array.isArray(data.actions)) {
         // Execute each action and collect responses
         const results: string[] = [];
+        let needsConfirmation = false;
+
         for (const action of data.actions as AssistantAction[]) {
-          const result = dispatchAssistantAction(action);
-          results.push(result);
+          // Check if action is SEND_EMAIL
+          if (action.type === 'SEND_EMAIL') {
+            needsConfirmation = true;
+            setShowConfirmDialog(true);
+            results.push('Email ready to send. Please confirm.');
+          } else {
+            const result = dispatchAssistantAction(action);
+            results.push(result);
+          }
         }
 
         setMessages((prev) => [
@@ -153,6 +165,53 @@ export default function AssistantPanel() {
           </div>
         )}
       </div>
+
+      {showConfirmDialog && (
+        <ConfirmSendDialog
+          to={compose.to}
+          subject={compose.subject}
+          body={compose.body}
+          onConfirm={async () => {
+            setShowConfirmDialog(false);
+            try {
+              const response = await fetch('/api/emails/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  to: compose.to,
+                  subject: compose.subject,
+                  body: compose.body,
+                }),
+              });
+
+              if (response.ok) {
+                setMessages((prev) => [
+                  ...prev,
+                  { role: 'assistant', content: '✓ Email sent successfully!' },
+                ]);
+                dispatchAssistantAction({ type: 'SEND_EMAIL_CONFIRMED' });
+              } else {
+                setMessages((prev) => [
+                  ...prev,
+                  { role: 'assistant', content: '✗ Failed to send email' },
+                ]);
+              }
+            } catch (error) {
+              setMessages((prev) => [
+                ...prev,
+                { role: 'assistant', content: '✗ Error sending email' },
+              ]);
+            }
+          }}
+          onCancel={() => {
+            setShowConfirmDialog(false);
+            setMessages((prev) => [
+              ...prev,
+              { role: 'assistant', content: 'Email sending cancelled.' },
+            ]);
+          }}
+        />
+      )}
 
       <div className="p-3 border-t flex gap-2">
         <Input

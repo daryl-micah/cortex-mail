@@ -9,6 +9,7 @@ export type AssistantAction =
       };
     }
   | { type: 'SEND_EMAIL' }
+  | { type: 'SEND_EMAIL_CONFIRMED' }
   | {
       type: 'FILTER_EMAILS';
       payload: {

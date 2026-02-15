@@ -29,6 +29,11 @@ export function dispatchAssistantAction(action: AssistantAction): string {
       if (!compose.to || !compose.subject) {
         return 'Cannot send: missing recipient or subject';
       }
+      // Will be handled by AssistantPanel with confirmation dialog
+      return 'SEND_REQUEST_PENDING';
+
+    case 'SEND_EMAIL_CONFIRMED':
+      // Reset compose after confirmation
       store.dispatch(sendEmail());
       store.dispatch(setView('INBOX'));
       return 'Email sent successfully!';
