@@ -6,74 +6,53 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-const systemPrompt = `You are an AI assistant that controls an email client UI through structured actions.
+const systemPrompt = `AI assistant controlling email UI via JSON actions.
 
-Your job is to interpret user commands and return ONLY a valid JSON action object.
+Actions:
+1. {"type":"OPEN_COMPOSE"}
+2. {"type":"FILL_COMPOSE","payload":{"to":"email","subject":"text","body":"text"}}
+3. {"type":"SEND_EMAIL"}
+4. {"type":"FILTER_EMAILS","payload":{"unread":true,"dateRange":"last-7-days","sender":"email"}}
+   valid dateRange: "today"|"yesterday"|"last-7-days"|"last-30-days"|"last-3-months"
+5. {"type":"OPEN_EMAIL","payload":{"id":"email-id"}}
+6. {"type":"REPLY_TO_CURRENT"}
 
-Available actions:
-
-1. OPEN_COMPOSE - Open the compose email view
-   { "type": "OPEN_COMPOSE" }
-
-2. FILL_COMPOSE - Fill compose form fields
-   { "type": "FILL_COMPOSE", "payload": { "to": "email@example.com", "subject": "Subject", "body": "Body text" } }
-
-3. SEND_EMAIL - Send the currently composed email
-   { "type": "SEND_EMAIL" }
-
-4. FILTER_EMAILS - Filter emails by criteria
-   { "type": "FILTER_EMAILS", "payload": { "unread": true, "dateRange": "last-7-days", "sender": "john@example.com" } }
-   
-   Valid dateRange values: "today", "yesterday", "last-7-days", "last-30-days", "last-3-months"
-   Use unread: true for unread only, unread: false for read only, or omit for all
-
-5. OPEN_EMAIL - Open a specific email by ID
-   { "type": "OPEN_EMAIL", "payload": { "id": "email-id" } }
-
-6. REPLY_TO_CURRENT - Reply to the currently open email
-   { "type": "REPLY_TO_CURRENT" }
-
-Context provided:
-- emails: List of available emails
-- currentView: Current UI view (INBOX, EMAIL_DETAIL, OPEN_COMPOSE, SEARCH)
-- selectedEmailId: ID of currently open email (if any)
+Context: emails array, currentView, selectedEmailId
 
 Examples:
+"Send email to x@y.com" → [{"type":"OPEN_COMPOSE"},{"type":"FILL_COMPOSE","payload":{"to":"x@y.com"}}]
+"Show unread" → {"type":"FILTER_EMAILS","payload":{"unread":true}}
+"Reply" → {"type":"REPLY_TO_CURRENT"}
+"Send this mail" → {"type":"SEND_EMAIL"}
 
-User: "Send an email to john@test.com about the meeting"
-Response: { "type": "OPEN_COMPOSE" }
-Then: { "type": "FILL_COMPOSE", "payload": { "to": "john@test.com", "subject": "Meeting", "body": "" } }
-
-User: "Show me unread emails"
-Response: { "type": "FILTER_EMAILS", "payload": { "unread": true } }
-
-User: "Open the email from GitHub"
-Response: { "type": "OPEN_EMAIL", "payload": { "id": "matching-email-id" } }
-
-User: "Reply to this"
-Response: { "type": "REPLY_TO_CURRENT" }
-
-IMPORTANT: 
-- Return ONLY valid JSON, no markdown code blocks
-- For compose actions, you may need multiple actions (first open, then fill)
-- Match email IDs from the provided context
-- Be smart about inferring user intent`;
+Return valid JSON only. Match email IDs from context.`;
 
 export async function POST(req: NextRequest) {
   try {
     const { message, context } = await req.json();
 
+    // Limit context to reduce token usage
+    const limitedContext = {
+      ...context,
+      emails: context.emails?.slice(0, 15).map((e: any) => ({
+        id: e.id,
+        from: e.from,
+        subject: e.subject,
+        unread: e.unread,
+      })),
+    };
+
     const response = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+      model: 'llama-3.1-8b-instant', // Higher rate limits than compound
       messages: [
         { role: 'system', content: systemPrompt },
         {
           role: 'user',
-          content: `Context: ${JSON.stringify(context)}\n\nUser message: ${message}`,
+          content: `Context: ${JSON.stringify(limitedContext)}\n\nUser: ${message}`,
         },
       ],
-      temperature: 0.3,
-      max_tokens: 500,
+      temperature: 0.2,
+      max_tokens: 300,
     });
 
     const content = response.choices[0]?.message?.content || '';
@@ -81,15 +60,28 @@ export async function POST(req: NextRequest) {
     // Parse the action from the response
     let actions: AssistantAction[] = [];
     try {
-      // Try to parse as single action first
-      const parsed = JSON.parse(content);
+      // Clean content - remove markdown code blocks and extra whitespace
+      let cleanContent = content.trim();
+      cleanContent = cleanContent
+        .replace(/```(?:json)?\s*/g, '')
+        .replace(/```\s*/g, '');
+
+      // Try to parse cleaned content
+      const parsed = JSON.parse(cleanContent);
       actions = Array.isArray(parsed) ? parsed : [parsed];
-    } catch {
-      // If JSON parsing fails, try to extract JSON from text
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        actions = Array.isArray(parsed) ? parsed : [parsed];
+    } catch (firstError) {
+      // If that fails, try to extract first valid JSON object
+      try {
+        // Match first complete JSON object (non-greedy, handles nested objects)
+        const jsonMatch = content.match(/(\{(?:[^{}]|(?:\{[^{}]*\}))*\})/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[1]);
+          actions = Array.isArray(parsed) ? parsed : [parsed];
+        } else {
+          console.error('No valid JSON found in response:', content);
+        }
+      } catch (secondError) {
+        console.error('Failed to parse AI response:', content);
       }
     }
 
