@@ -6,7 +6,7 @@ import ConfirmSendDialog from '@/components/ui/ConfirmSendDialog';
 import { dispatchAssistantAction } from '@/lib/assistantDispatcher';
 import { useAppSelector } from '@/store';
 import { MessageSquareOff, Send } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { AssistantAction } from '@/types/assistant';
 
 interface Message {
@@ -19,12 +19,26 @@ export default function AssistantPanel() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const emails = useAppSelector((state) => state.mail.emails);
   const filters = useAppSelector((state) => state.mail.filters);
   const currentView = useAppSelector((state) => state.ui.view);
   const selectedEmailId = useAppSelector((state) => state.ui.selectedEmailId);
   const compose = useAppSelector((state) => state.mail.compose);
+
+  // Keyboard shortcut
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleSendMessage = async () => {
     if (!input.trim() || loading) return;
@@ -215,7 +229,8 @@ export default function AssistantPanel() {
 
       <div className="p-3 border-t flex gap-2">
         <Input
-          placeholder="Type a command..."
+          ref={inputRef}
+          placeholder="Type a command... (Ctrl+K)"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyPress={handleKeyPress}

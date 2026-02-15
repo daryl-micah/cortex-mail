@@ -79,7 +79,7 @@ export default function EmailDetailView() {
           <iframe
             srcDoc={processedHtmlBody}
             sandbox="allow-same-origin"
-            className="w-full min-h-[400px] border-0"
+            className="w-full min-h-96 border-0"
             style={{
               colorScheme: 'light dark',
             }}
