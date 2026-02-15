@@ -22,7 +22,7 @@ Context: emails array, currentView, selectedEmailId
 Examples:
 "Send email to x@y.com" → [{"type":"OPEN_COMPOSE"},{"type":"FILL_COMPOSE","payload":{"to":"x@y.com"}}]
 "Show unread" → {"type":"FILTER_EMAILS","payload":{"unread":true}}
-"Reply" → {"type":"REPLY_TO_CURRENT"}
+"Reply to this email" → {"type":"REPLY_TO_CURRENT"},
 "Send this mail" → {"type":"SEND_EMAIL"}
 
 Return valid JSON only. Match email IDs from context.`;

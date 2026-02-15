@@ -5,15 +5,20 @@ import { RootState } from '@/store';
 import { markAsRead } from '@/store/mailSlice';
 import { setView } from '@/store/uiSlice';
 import { useAppDispatch, useAppSelector } from '@/store';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 export default function EmailDetailView() {
   const dispatch = useAppDispatch();
 
   const { selectedEmailId } = useAppSelector((state: RootState) => state.ui);
-  const email = useAppSelector((state: RootState) =>
-    state.mail.emails.find((e) => e.id === selectedEmailId)
-  );
+  const email = useAppSelector((state: RootState) => {
+    // Check both inbox and sent emails
+    const inboxEmail = state.mail.emails.find((e) => e.id === selectedEmailId);
+    const sentEmail = state.mail.sentEmails.find(
+      (e) => e.id === selectedEmailId
+    );
+    return inboxEmail || sentEmail;
+  });
 
   // Replace CID references with attachment URLs
   const processedHtmlBody = useMemo(() => {
@@ -38,7 +43,7 @@ export default function EmailDetailView() {
   }
 
   const handleBack = () => {
-    dispatch(setView('INBOX'));
+    if (email) dispatch(setView('INBOX'));
   };
 
   const handleMarkAsRead = async () => {
