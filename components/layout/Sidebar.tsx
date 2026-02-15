@@ -31,11 +31,11 @@ export default function Sidebar() {
           label="Compose"
           onClick={() => dispatch(openCompose())}
         />
-        <NavButton
+        {/* <NavButton
           icon={<Search />}
           label="Search"
           onClick={() => dispatch(setView('SEARCH'))}
-        />
+        /> */}
       </div>
 
       {/* User Info Section */}
