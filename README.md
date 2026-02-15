@@ -1,4 +1,5 @@
-# AI Email Client
+# Cortex Mail
+## AI Email Client
 
 AI-powered mail application where the assistant controls the UI. Built with Next.js, Gmail API, and Groq LLM.
 
