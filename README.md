@@ -41,6 +41,10 @@ pnpm dev
 
 Open http://localhost:3000 and sign in with Google.
 
+## Demo Video
+
+https://www.loom.com/share/c7fbd1cf3400438397c17edee48408a8
+
 ## Architecture Decisions and Trade-offs
 
 ### Redux + Dispatcher Pattern
