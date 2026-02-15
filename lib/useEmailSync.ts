@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAppDispatch } from '@/store';
 import {
   setEmails,
@@ -9,8 +9,11 @@ import {
   setError,
 } from '@/store/mailSlice';
 
+const POLL_INTERVAL = 30000; // 30 seconds
+
 export function useEmailSync() {
   const dispatch = useAppDispatch();
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchInbox = async () => {
     try {
@@ -31,6 +34,23 @@ export function useEmailSync() {
     } catch (error) {
       console.error('Error fetching inbox:', error);
       dispatch(setError('Failed to load emails'));
+    }
+  };
+
+  const fetchInboxSilently = async () => {
+    try {
+      const response = await fetch('/api/emails/inbox');
+      if (response.ok) {
+        const data = await response.json();
+        dispatch(
+          setEmails({
+            emails: data.emails || [],
+            nextPageToken: data.nextPageToken,
+          })
+        );
+      }
+    } catch (error) {
+      console.error('Silent inbox refresh failed:', error);
     }
   };
 
@@ -71,8 +91,21 @@ export function useEmailSync() {
   };
 
   useEffect(() => {
+    // Initial fetch
     fetchInbox();
     fetchSent();
+
+    // Set up polling for inbox updates
+    pollIntervalRef.current = setInterval(() => {
+      fetchInboxSilently();
+    }, POLL_INTERVAL);
+
+    // Cleanup on unmount
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
   }, []);
 
   return { fetchInbox, fetchSent, sendEmail };
