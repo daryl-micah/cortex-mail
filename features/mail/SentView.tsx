@@ -9,7 +9,7 @@ export default function SentView() {
   const loading = useAppSelector((state) => state.mail.loading);
 
   return (
-    <div className="max-w-full max-h-screen overflow-y-auto p-4">
+    <div className="max-w-full max-h-screen overflow-y-auto no-scrollbar p-4">
       <div className="flex flex-row space-x-2 items-center justify-between">
         <div className="flex items-center space-x-2">
           <Send className="w-6 h-6 mb-3 text-green-600" />
