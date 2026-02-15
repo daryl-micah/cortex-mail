@@ -14,7 +14,8 @@ export default function Sidebar() {
   return (
     <aside className="border-r p-4 space-y-2 flex flex-col h-screen">
       <div className="flex-1 space-y-2">
-        <h1 className="text-lg font-semibold mb-4">MailerRoid</h1>
+        <h1 className="text-lg font-semibold mb-4">Cortex Mail</h1>
+        <div className="border border-border" />
         <NavButton
           label="Inbox"
           icon={<Inbox className="text-red-600" />}

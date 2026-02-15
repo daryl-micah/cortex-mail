@@ -19,7 +19,7 @@ export default function LoginPage() {
               <Mail className="w-12 h-12 text-blue-600" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold">AI Email Client</h1>
+          <h1 className="text-3xl font-bold">Cortex Mail</h1>
           <p className="text-muted-foreground">
             Sign in with Google to access your emails
           </p>
