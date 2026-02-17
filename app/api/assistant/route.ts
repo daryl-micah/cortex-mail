@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     };
 
     const response = await groq.chat.completions.create({
-      model: 'llama-3.1-8b-instant', // Higher rate limits than compound
+      model: 'llama-3.3-70b-versatile', // Higher rate limits than compound
       messages: [
         { role: 'system', content: systemPrompt },
         {
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
           content: `Context: ${JSON.stringify(limitedContext)}\n\nUser: ${message}`,
         },
       ],
-      temperature: 0.2,
+      temperature: 0.3,
       max_tokens: 300,
     });
 
