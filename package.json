@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@pinecone-database/pinecone": "^7.1.0",
     "@reduxjs/toolkit": "^2.11.2",
     "ai": "^6.0.85",
     "class-variance-authority": "^0.7.1",
@@ -16,6 +17,7 @@
     "googleapis": "^171.4.0",
     "groq-sdk": "^0.37.0",
     "isomorphic-dompurify": "3.0.0-rc.2",
+    "js-tiktoken": "^1.0.21",
     "lucide-react": "^0.563.0",
     "next": "16.1.6",
     "next-auth": "5.0.0-beta.30",
@@ -23,7 +25,8 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-redux": "^9.2.0",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.4.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
