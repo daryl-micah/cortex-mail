@@ -177,7 +177,9 @@ export const tools: Tool[] = [
       emailId: z
         .string()
         .optional()
-        .describe('Email to reply to. Omit to reply to the currently open email.'),
+        .describe(
+          'Email to reply to. Omit to reply to the currently open email.'
+        ),
       body: z.string().optional().describe('Pre-fill the reply body'),
     }),
     execute: async (params, context) => {
@@ -222,7 +224,7 @@ export function getToolDescriptions(): string {
         t.parameters instanceof z.ZodObject ? t.parameters.shape : {};
       const params = Object.entries(shape)
         .map(([key, schema]) => {
-          const desc = (schema as z.ZodTypeAny)._def?.description ?? '';
+          const desc = (schema as any)._def?.description ?? '';
           const optional =
             schema instanceof z.ZodOptional ? ' (optional)' : ' (required)';
           return `  - ${key}${optional}: ${desc}`;
@@ -246,11 +248,20 @@ export async function executeTool(
   try {
     const validated = tool.parameters.parse(rawInput ?? {});
     const result = await tool.execute(validated, context);
-    logToolCall({ toolName: name, latencyMs: Date.now() - start, success: true });
+    logToolCall({
+      toolName: name,
+      latencyMs: Date.now() - start,
+      success: true,
+    });
     return result;
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);
-    logToolCall({ toolName: name, latencyMs: Date.now() - start, success: false, error });
+    logToolCall({
+      toolName: name,
+      latencyMs: Date.now() - start,
+      success: false,
+      error,
+    });
     return `Error running ${name}: ${error}`;
   }
 }

@@ -31,14 +31,20 @@ export interface EmailForEmbedding {
  * Generate embeddings for an array of texts using Pinecone's
  * hosted multilingual-e5-large model (1024-dim, cosine metric)
  */
-export async function embedTexts(texts: string[]): Promise<number[][]> {
+export async function embedTexts(
+  texts: string[],
+  inputType: 'passage' | 'query' = 'passage'
+): Promise<number[][]> {
   const pinecone = getPinecone();
-  const response = await pinecone.inference.embed(
-    'multilingual-e5-large',
-    texts,
-    { inputType: 'passage', truncate: 'END' }
-  );
-  return response.map((r) => Array.from(r.values as number[]));
+  const response = await pinecone.inference.embed({
+    model: 'multilingual-e5-large',
+    inputs: texts,
+    parameters: { inputType, truncate: 'END' },
+  });
+  return response.data.map((r) => {
+    const dense = r as unknown as { values: number[] };
+    return Array.from(dense.values);
+  });
 }
 
 /**
@@ -70,7 +76,7 @@ export async function upsertEmails(emails: EmailForEmbedding[]): Promise<void> {
   }));
 
   for (let i = 0; i < vectors.length; i += 100) {
-    await index.upsert(vectors.slice(i, i + 100));
+    await index.upsert({ records: vectors.slice(i, i + 100) });
   }
 }
 
@@ -96,12 +102,7 @@ export async function searchEmails(
   const index = pinecone.index(INDEX_NAME);
 
   // Use 'query' inputType for asymmetric passage retrieval
-  const queryResponse = await pinecone.inference.embed(
-    'multilingual-e5-large',
-    [query],
-    { inputType: 'query', truncate: 'END' }
-  );
-  const queryVector = Array.from(queryResponse[0].values as number[]);
+  const [queryVector] = await embedTexts([query], 'query');
 
   const results = await index.query({
     vector: queryVector,

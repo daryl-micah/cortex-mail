@@ -6,7 +6,7 @@ import { z } from 'zod';
 export const AgentThoughtSchema = z.object({
   thought: z.string(),
   action: z.string().optional(),
-  action_input: z.record(z.unknown()).optional(),
+  action_input: z.record(z.string(), z.unknown()).optional(),
   final_answer: z.string().optional(),
 });
 
@@ -80,8 +80,8 @@ export type AgentResponse = z.infer<typeof AgentResponseSchema>;
 export function validateAgentResponse(data: unknown): AgentResponse {
   const result = AgentResponseSchema.safeParse(data);
   if (!result.success) {
-    const errors = result.error.errors
-      .map((e) => `${e.path.join('.')}: ${e.message}`)
+    const errors = result.error.issues
+      .map((e) => `${String(e.path.join('.'))}: ${e.message}`)
       .join('; ');
     throw new Error(`Invalid agent response: ${errors}`);
   }
