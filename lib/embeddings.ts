@@ -14,7 +14,7 @@ function getPinecone(): Pinecone {
   return _pinecone;
 }
 
-const INDEX_NAME = 'cortex-emails';
+const INDEX_NAME = process.env.PINECONE_INDEX_NAME || 'cortex-mail';
 
 export interface EmailForEmbedding {
   id: string;
@@ -56,7 +56,7 @@ export async function upsertEmails(emails: EmailForEmbedding[]): Promise<void> {
   if (emails.length === 0) return;
 
   const pinecone = getPinecone();
-  const index = pinecone.index(INDEX_NAME);
+  const index = pinecone.index({ name: INDEX_NAME });
 
   const texts = emails.map(
     (e) => `${e.subject} ${e.preview} ${e.bodyText ?? ''}`
@@ -99,7 +99,7 @@ export async function searchEmails(
   topK = 10
 ): Promise<EmailSearchResult[]> {
   const pinecone = getPinecone();
-  const index = pinecone.index(INDEX_NAME);
+  const index = pinecone.index({ name: INDEX_NAME });
 
   // Use 'query' inputType for asymmetric passage retrieval
   const [queryVector] = await embedTexts([query], 'query');
@@ -127,6 +127,6 @@ export async function searchEmails(
 export async function deleteEmails(ids: string[]): Promise<void> {
   if (ids.length === 0) return;
   const pinecone = getPinecone();
-  const index = pinecone.index(INDEX_NAME);
+  const index = pinecone.index({ name: INDEX_NAME });
   await index.deleteMany(ids);
 }
