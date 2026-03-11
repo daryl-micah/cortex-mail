@@ -9,7 +9,7 @@ AI-powered email client where the assistant controls the UI via a ReAct agent lo
 - **RAG-powered semantic search** — emails are embedded and indexed in Pinecone; the assistant retrieves only relevant emails per query instead of dumping the full inbox into the prompt
 - **ReAct agent loop** — multi-step tool use with visible reasoning chain; handles complex requests like "find the email from Sarah about the project and summarize it"
 - **Multi-turn conversation** — full conversation history with token-budget management and automatic summarisation of older turns to stay within context limits
-- **Structured output + eval harness** — all LLM outputs validated against Zod schemas with automatic retry-on-failure; `pnpm eval` runs an accuracy benchmark against a live server
+- **Structured output + validation** — all LLM outputs validated against Zod schemas with automatic retry-on-failure
 
 ## How to Set It Up and Run Locally
 
@@ -58,16 +58,6 @@ pnpm dev
 
 Open http://localhost:3000 and sign in with Google.
 
-### 5. Run Eval Harness
-
-With the dev server running:
-
-```bash
-pnpm eval
-```
-
-Runs 8 test cases against the live assistant API and writes a report to `evals/report.md`.
-
 ## Demo Video
 
 https://www.loom.com/share/c7fbd1cf3400438397c17edee48408a8
@@ -97,6 +87,8 @@ Each request includes the full conversation history, RAG context, system prompt,
 
 Every LLM response is validated against a Zod schema (`AgentThoughtSchema`). On failure, the agent retries up to 2 times with the validation error appended to the conversation so the model can self-correct. All LLM calls, tool calls, and agent runs are logged to `ai-logs.jsonl` via `lib/aiLogger.ts`.
 
+> Eval harness (`evals/`) is not included in this repo — the assistant API requires an authenticated Gmail session that can't be bypassed cleanly in a script-based runner.
+
 ### Redux + Dispatcher Pattern
 
 The dispatcher translates agent action payloads into Redux state changes. This decouples AI logic from UI — the agent returns `{ action: "COMPOSE_EMAIL", to: "...", subject: "..." }` and the dispatcher handles all Redux wiring. Adding new UI actions requires no changes to the agent or tools.
@@ -113,7 +105,7 @@ Llama 3.3 70B via Groq. Fast enough that the ReAct loop completes in under 3 sec
 
 **Token-Aware RAG Compression** — RAG results are currently truncated by character count when over budget. A smarter approach would re-rank chunks by relevance score and drop the lowest-scoring ones first.
 
-**Semantic Eval Scoring** — The eval harness does exact-match checks on action types and field values. Adding an LLM-as-judge step would catch cases where the agent technically passes but gives a poor response.
+**Eval Harness** — No automated accuracy benchmarks. Would add an LLM-as-judge eval that replays conversations against a seed dataset to catch regressions, without requiring a live Gmail session.
 
 **OAuth Token Refresh** — Access tokens expire after 1 hour. Silent refresh on `401` from Gmail API is not implemented; users must sign in again.
 

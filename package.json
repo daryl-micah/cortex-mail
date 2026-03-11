@@ -6,8 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "eval": "tsx evals/run.ts"
+    "lint": "eslint"
   },
   "dependencies": {
     "@pinecone-database/pinecone": "^7.1.0",
