@@ -1,8 +1,15 @@
 # Cortex Mail
 
-AI-powered mail application where the assistant controls the UI. Built with Next.js, Gmail API, and Groq LLM.
+AI-powered email client where the assistant controls the UI via a ReAct agent loop. Built with Next.js, Gmail API, Groq (Llama 3.3 70B), Pinecone, and Zod.
 
 **Live Demo**: https://cortex-mail-azure.vercel.app
+
+## Features
+
+- **RAG-powered semantic search** — emails are embedded and indexed in Pinecone; the assistant retrieves only relevant emails per query instead of dumping the full inbox into the prompt
+- **ReAct agent loop** — multi-step tool use with visible reasoning chain; handles complex requests like "find the email from Sarah about the project and summarize it"
+- **Multi-turn conversation** — full conversation history with token-budget management and automatic summarisation of older turns to stay within context limits
+- **Structured output + eval harness** — all LLM outputs validated against Zod schemas with automatic retry-on-failure; `pnpm eval` runs an accuracy benchmark against a live server
 
 ## How to Set It Up and Run Locally
 
@@ -11,6 +18,7 @@ AI-powered mail application where the assistant controls the UI. Built with Next
 - Node.js 18+ and pnpm
 - Google Cloud project with Gmail API enabled
 - Groq API key
+- Pinecone account (free serverless tier works)
 
 ### 1. Google Cloud Setup
 
@@ -20,7 +28,15 @@ AI-powered mail application where the assistant controls the UI. Built with Next
 4. Add authorized redirect URI: `http://localhost:3000/api/auth/callback/google`
 5. Add your email as a test user in OAuth consent screen
 
-### 2. Environment Variables
+### 2. Pinecone Setup
+
+1. Go to [Pinecone Console](https://app.pinecone.io) → Create Index
+2. **Name:** `cortex-emails`
+3. **Dimensions:** `1024` (multilingual-e5-large)
+4. **Metric:** `cosine`
+5. **Type:** Serverless
+
+### 3. Environment Variables
 
 Create `.env.local` in the root:
 
@@ -30,9 +46,10 @@ GOOGLE_CLIENT_SECRET=your_google_client_secret
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=generate_with_openssl_rand_base64_32
 GROQ_API_KEY=your_groq_api_key
+PINECONE_API_KEY=your_pinecone_api_key
 ```
 
-### 3. Install & Run
+### 4. Install & Run
 
 ```bash
 pnpm install
@@ -41,48 +58,63 @@ pnpm dev
 
 Open http://localhost:3000 and sign in with Google.
 
+### 5. Run Eval Harness
+
+With the dev server running:
+
+```bash
+pnpm eval
+```
+
+Runs 8 test cases against the live assistant API and writes a report to `evals/report.md`.
+
 ## Demo Video
 
 https://www.loom.com/share/c7fbd1cf3400438397c17edee48408a8
 
-## Architecture Decisions and Trade-offs
+## Architecture
+
+### RAG Pipeline (`lib/embeddings.ts`)
+
+On every inbox fetch, emails are embedded using Pinecone's `multilingual-e5-large` model and stored as vectors. When the assistant receives a query, it embeds the query and retrieves the top-k semantically similar emails before the first LLM call. This replaces the old approach of dumping the first 15 emails regardless of relevance, scaling cleanly to large inboxes.
+
+### ReAct Agent Loop (`lib/reactAgent.ts`)
+
+The assistant follows the ReAct pattern (Reason + Act):
+
+1. LLM emits a `thought` + `action` + `action_input`
+2. The tool executes and returns an `observation`
+3. The observation is fed back into the next LLM call
+4. Loop repeats up to 5 iterations until a `final_answer` is produced
+
+Available tools: `search_emails`, `get_email_body`, `summarize_thread`, `compose_email`, `send_email`, `open_email`, `reply_to_email`, `filter_emails`. Tools that trigger UI changes return a JSON action payload dispatched to Redux.
+
+### Multi-Turn Context Management (`lib/contextBuilder.ts`, `lib/tokenCounter.ts`)
+
+Each request includes the full conversation history, RAG context, system prompt, and tool descriptions — all measured in tokens via `js-tiktoken`. When the conversation budget is exceeded, older turns are summarised and replaced with a single summary message, preventing crashes on long conversations while preserving recent context.
+
+### Structured Output + Retry Logic (`lib/schemas.ts`, `lib/reactAgent.ts`)
+
+Every LLM response is validated against a Zod schema (`AgentThoughtSchema`). On failure, the agent retries up to 2 times with the validation error appended to the conversation so the model can self-correct. All LLM calls, tool calls, and agent runs are logged to `ai-logs.jsonl` via `lib/aiLogger.ts`.
 
 ### Redux + Dispatcher Pattern
 
-Chose Redux Toolkit over Context API because the assistant needs to dispatch actions from outside React components. The dispatcher pattern keeps things clean—AI outputs JSON actions, dispatcher translates to Redux state changes, UI reacts automatically. This separation made it easy to add the confirmation dialog for email sending without touching the AI logic.
+The dispatcher translates agent action payloads into Redux state changes. This decouples AI logic from UI — the agent returns `{ action: "COMPOSE_EMAIL", to: "...", subject: "..." }` and the dispatcher handles all Redux wiring. Adding new UI actions requires no changes to the agent or tools.
 
-### Groq for AI (Not OpenAI)
+### Groq for Inference
 
-Went with Groq's Llama 3.3 70B instead of OpenAI. Faster inference, cheaper, and structured JSON output is more reliable than function calling with open-source models. The assistant doesn't need streaming since actions are atomic—either you open compose or you don't. Also avoided vendor lock-in.
-
-### Polling Over Push Notifications
-
-Implemented 30-second polling instead of Gmail push notifications. Push requires webhook setup, domain verification, Pub/Sub configuration. Polling is naive but works reliably. Silent background refresh keeps it non-intrusive. Real production app would use push.
-
-### Iframe for Email Rendering
-
-HTML emails render in sandboxed iframes instead of using DOMPurify. Handles inline images by mapping CID references to attachment URLs via a proxy endpoint. Iframe sandboxing (`allow-same-origin` only) is simpler and more secure than sanitizing. Auto-resizes to content height.
-
-### No Streaming for Assistant
-
-Assistant responses are non-streaming because the output is structured actions, not conversational text. User doesn't need to watch JSON being generated character by character. Simpler error handling and the UX is actually better—actions execute immediately rather than waiting for stream to finish.
+Llama 3.3 70B via Groq. Fast enough that the ReAct loop completes in under 3 seconds for most multi-step queries. `response_format: { type: 'json_object' }` combined with Zod validation eliminates the need for regex parsing fallbacks.
 
 ## What I'd Improve With More Time
 
-**Better AI Context Management** - Currently sending all email metadata on every request. For large inboxes (500+ emails), this hits token limits. Would implement summarization or a sliding context window with only recent/relevant emails.
+**Gmail Push Notifications** — Replace 30-second polling with Pub/Sub. Setup requires domain verification and webhook configuration but eliminates the latency on new email arrival. Would also add optimistic updates for read/unread state.
 
-**Semantic Search** - Filtering works but "find that email about the AWS migration" doesn't. Would add embeddings (OpenAI ada-002 or local with Sentence Transformers) + vector search. Store embeddings in Redis or Postgres with pgvector.
+**Thread/Conversation View** — Emails aren't grouped by `threadId`. Data is already present; needs UI grouping and a "show conversation" toggle.
 
-**Gmail Push Notifications** - Replace polling with Pub/Sub. The 30s delay is noticeable when testing sends. Setup is annoying but worth it for production. Would also add optimistic updates—mark as read immediately, then sync.
+**Token-Aware RAG Compression** — RAG results are currently truncated by character count when over budget. A smarter approach would re-rank chunks by relevance score and drop the lowest-scoring ones first.
 
-**Thread/Conversation View** - Emails aren't grouped by Gmail's threadId. Data is there, just needs UI grouping and a "show conversation" toggle. Important for understanding context in back-and-forth emails.
+**Semantic Eval Scoring** — The eval harness does exact-match checks on action types and field values. Adding an LLM-as-judge step would catch cases where the agent technically passes but gives a poor response.
 
-**Retry Logic & Error Boundaries** - Happy path works but token refresh on OAuth expiry is missing. Would add exponential backoff for API failures, proper error boundaries, and toast notifications instead of inline errors.
+**OAuth Token Refresh** — Access tokens expire after 1 hour. Silent refresh on `401` from Gmail API is not implemented; users must sign in again.
 
-**Tests** - Zero tests currently. Would add Playwright for E2E (especially assistant workflows—"send email to X" → confirm dialog → success), Vitest for utilities, and MSW for mocking Gmail API in tests.
-
-**Assistant Clarification** - Should ask questions when ambiguous. "Which email from John? I see 3." Right now it picks the first match. Would add a clarification step before executing actions.
-
-**Keyboard Shortcuts** - Only Ctrl+K for assistant focus. Would add Gmail-style shortcuts: `c` for compose, `r` for reply, `/` for search, `j/k` for navigation, `e` for archive.
-
-**Offline Support** - No offline capability. Would add service worker for reading cached emails, queue outgoing sends, and sync when back online. IndexedDB for email storage.
+**Keyboard Shortcuts** — Gmail-style shortcuts (`c` compose, `r` reply, `/` search, `j/k` navigation) are missing beyond `Ctrl+K` for assistant focus.
