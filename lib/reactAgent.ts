@@ -156,6 +156,10 @@ export interface AgentResult {
   steps: AgentStep[];
   message: string;
   actions: AgentAction[];
+  /** True when older conversation turns were LLM-summarised to fit the token budget */
+  summarised: boolean;
+  /** Total tokens consumed by this agent run's context */
+  budgetUsed: number;
 }
 
 /**
@@ -187,7 +191,7 @@ export async function runAgent(
   }
 
   const systemPrompt = buildSystemPrompt();
-  const builtCtx = buildContext(systemPrompt, ragResults, history);
+  const builtCtx = await buildContext(systemPrompt, ragResults, history);
 
   // Build initial message array
   let messages: Groq.Chat.ChatCompletionMessageParam[] = [
@@ -220,7 +224,13 @@ export async function runAgent(
         latencyMs: Date.now() - agentStart,
         success: true,
       });
-      return { steps, message: llmOut.final_answer, actions };
+      return {
+        steps,
+        message: llmOut.final_answer,
+        actions,
+        summarised: builtCtx.summarised,
+        budgetUsed: builtCtx.budgetUsed,
+      };
     }
 
     // Tool call
@@ -259,7 +269,20 @@ export async function runAgent(
     } else {
       // LLM returned neither action nor final_answer — force a conclusion
       steps.push(step);
-      break;
+      logAgentRun({
+        steps: steps.length,
+        actionsDispatched: actions.length,
+        latencyMs: Date.now() - agentStart,
+        success: false,
+      });
+      return {
+        steps,
+        message:
+          'I ran into trouble structuring my response. Please try again.',
+        actions,
+        summarised: builtCtx.summarised,
+        budgetUsed: builtCtx.budgetUsed,
+      };
     }
   }
 
@@ -275,5 +298,7 @@ export async function runAgent(
     message:
       "I've completed my analysis. Here's what I found based on your request.",
     actions,
+    summarised: builtCtx.summarised,
+    budgetUsed: builtCtx.budgetUsed,
   };
 }

@@ -1,8 +1,8 @@
-import { get_encoding } from 'js-tiktoken';
+import { getEncoding } from 'js-tiktoken';
 
 // cl100k_base is used by GPT-4 and is the closest publicly available encoder
 // to LLaMA 3's tokenizer — good enough for budget estimation
-const encoder = get_encoding('cl100k_base');
+const encoder = getEncoding('cl100k_base');
 
 /**
  * Count tokens in a plain string
