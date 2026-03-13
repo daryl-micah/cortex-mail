@@ -54,7 +54,7 @@ export default function AppShell() {
 
       {/* Assistant Panel - Hidden on mobile by default, visible on lg+ */}
       <div
-        className={`fixed md:absolute bottom-0 left-0 right-0 z-40 bg-background h-[calc(100vh-64px)] md:h-auto md:max-h-none ${assistantOpen ? 'block md:hidden' : 'hidden'} lg:block`}
+        className={`absolute top-16 left-0 right-0 z-40 bg-background h-[calc(100vh-64px)] overflow-hidden md:relative md:top-auto md:h-auto md:overflow-visible ${assistantOpen ? 'block md:hidden' : 'hidden'} lg:block`}
       >
         <AssistantPanel onClose={() => setAssistantOpen(false)} />
       </div>
