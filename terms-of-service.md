@@ -44,4 +44,4 @@ We may update these Terms from time to time. Continued use of the Service after 
 
 ## 9. Contact
 
-For questions or support, contact us at [your support email].
+For questions or support, contact us at https://x.com/_darylm.

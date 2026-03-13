@@ -19,6 +19,7 @@
     "isomorphic-dompurify": "3.0.0-rc.2",
     "js-tiktoken": "^1.0.21",
     "lucide-react": "^0.563.0",
+    "marked": "^17.0.4",
     "next": "16.1.6",
     "next-auth": "5.0.0-beta.30",
     "radix-ui": "^1.4.3",

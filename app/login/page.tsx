@@ -2,8 +2,8 @@
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Mail } from 'lucide-react';
 import { signIn } from 'next-auth/react';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const handleGoogleSignIn = async () => {
@@ -15,9 +15,12 @@ export default function LoginPage() {
       <Card className="w-full max-w-md p-8 space-y-6">
         <div className="text-center space-y-2">
           <div className="flex justify-center">
-            <div className="bg-blue-100 p-4 rounded-full">
-              <Mail className="w-12 h-12 text-blue-600" />
-            </div>
+            <Image
+              src="/cortex.png"
+              alt="Cortex Mail Logo"
+              width={150}
+              height={150}
+            />
           </div>
           <h1 className="text-3xl font-bold">Cortex Mail</h1>
           <p className="text-muted-foreground">
@@ -66,6 +69,21 @@ export default function LoginPage() {
             <li>Context-aware assistant</li>
             <li>Real-time email sync</li>
           </ul>
+        </div>
+        <div className="pt-4 text-xs text-center text-muted-foreground">
+          <a
+            href="/policy"
+            className="underline hover:text-foreground transition-colors"
+          >
+            Privacy Policy
+          </a>
+          <span className="mx-2">·</span>
+          <a
+            href="/terms"
+            className="underline hover:text-foreground transition-colors"
+          >
+            Terms of Service
+          </a>
         </div>
       </Card>
     </div>
