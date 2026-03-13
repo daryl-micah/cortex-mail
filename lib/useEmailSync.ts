@@ -29,7 +29,7 @@ export function useEmailSync() {
       dispatch(setEmails({ emails, nextPageToken: data.nextPageToken }));
     } catch (error) {
       console.error('Error fetching inbox:', error);
-      dispatch(setError('Failed to load emails'));
+      dispatch(setError('Failed to load emails, please sign-in again.'));
     }
   };
 
@@ -58,6 +58,7 @@ export function useEmailSync() {
       dispatch(setSentEmails(data.emails || []));
     } catch (error) {
       console.error('Error fetching sent emails:', error);
+      dispatch(setError('Failed to load sent emails, please sign-in again.'));
     }
   };
 
