@@ -43,19 +43,28 @@ export default function EmailRow({ email }: Props) {
     <div
       onClick={() => dispatch(openEmail(email.id))}
       className={cn(
-        'p-3 rounded-lg cursor-pointer hover:bg-muted transition',
+        'p-2 sm:p-3 rounded-lg cursor-pointer hover:bg-muted transition',
         email.unread && 'bg-muted/50'
       )}
     >
-      <div className="flex justify-between">
-        <span className="font-medium">{email.from}</span>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">{email.date}</span>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+        <div className="flex-1 min-w-0">
+          <span className="font-medium text-sm sm:text-base block truncate">
+            {email.from}
+          </span>
+          <div className="text-xs sm:text-sm text-muted-foreground truncate">
+            {email.subject}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-xs text-muted-foreground whitespace-nowrap">
+            {email.date}
+          </span>
           {email.unread && (
             <Button
               size="sm"
               variant="ghost"
-              className="h-6 w-6 p-0 cursor-pointer"
+              className="h-6 w-6 sm:h-7 sm:w-7 p-0 cursor-pointer shrink-0"
               onClick={handleMarkAsRead}
               disabled={marking}
               title="Mark as read"
@@ -66,8 +75,9 @@ export default function EmailRow({ email }: Props) {
         </div>
       </div>
 
-      <div className="text-sm">{email.subject}</div>
-      <div className="text-xs text-muted-foreground">{email.preview}</div>
+      <div className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mt-1">
+        {email.preview}
+      </div>
     </div>
   );
 }

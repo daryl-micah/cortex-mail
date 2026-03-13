@@ -88,19 +88,25 @@ export default function ComposeForm() {
       </div>
 
       <textarea
-        className="flex-1 p-3 resize-none bg-background border-0 focus:outline-none min-h-72 min-w-2xl"
+        className="flex-1 p-3 resize-none bg-background border-0 focus:outline-none min-h-48 sm:min-h-72 w-full"
         placeholder="Write your message..."
         value={compose.body}
         onChange={(e) => dispatch(setCompose({ body: e.target.value }))}
       />
 
-      <footer className="p-3 border-t flex justify-between">
-        <Button variant="outline" onClick={handleClose} disabled={sending}>
+      <footer className="p-3 border-t flex flex-col sm:flex-row gap-2 sm:gap-0 sm:justify-between">
+        <Button
+          variant="outline"
+          onClick={handleClose}
+          disabled={sending}
+          className="w-full sm:w-auto"
+        >
           Discard
         </Button>
         <Button
           disabled={!compose.to || !compose.subject || sending}
           onClick={handleSend}
+          className="w-full sm:w-auto"
         >
           {sending ? 'Sending...' : 'Send'}
         </Button>

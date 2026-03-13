@@ -1,6 +1,6 @@
 @import 'tailwindcss';
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -122,5 +122,34 @@
   body {
     @apply bg-background text-foreground;
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  /* Mobile-first responsive touch targets */
+  @media (max-width: 768px) {
+    button {
+      @apply min-h-11 min-w-11;
+    }
+
+    input,
+    textarea {
+      @apply text-base;
+      /* Prevent zoom on input focus on iOS */
+      @apply text-lg;
+    }
+  }
+
+  /* Responsive spacing */
+  @media (max-width: 640px) {
+    .container {
+      @apply px-4;
+    }
+  }
+
+  /* Prevent horizontal scroll on mobile */
+  html,
+  body {
+    @apply overflow-x-hidden;
   }
 }

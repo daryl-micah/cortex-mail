@@ -31,7 +31,11 @@ interface Message {
   budgetUsed?: number;
 }
 
-export default function AssistantPanel() {
+interface AssistantPanelProps {
+  onClose?: () => void;
+}
+
+export default function AssistantPanel({ onClose }: AssistantPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);

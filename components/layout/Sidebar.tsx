@@ -7,29 +7,40 @@ import { Inbox, Pencil, Search, LogOut, Send } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 
-export default function Sidebar() {
+interface SidebarProps {
+  onClose?: () => void;
+}
+
+export default function Sidebar({ onClose }: SidebarProps) {
   const dispatch = useAppDispatch();
   const { data: session } = useSession();
 
+  const handleNavigation = (callback: () => void) => {
+    callback();
+    onClose?.();
+  };
+
   return (
-    <aside className="border-r p-4 space-y-2 flex flex-col h-screen">
+    <aside className="border-r p-3 md:p-4 space-y-2 flex flex-col h-screen md:h-full max-h-[calc(100vh-64px)] md:max-h-screen overflow-y-auto">
       <div className="flex-1 space-y-2">
-        <h1 className="text-lg font-semibold mb-4">Cortex Mail</h1>
+        <h1 className="hidden md:block text-lg font-semibold mb-4">
+          Cortex Mail
+        </h1>
         <div className="border border-border" />
         <NavButton
           label="Inbox"
           icon={<Inbox className="text-red-600" />}
-          onClick={() => dispatch(setView('INBOX'))}
+          onClick={() => handleNavigation(() => dispatch(setView('INBOX')))}
         />
         <NavButton
           label="Sent"
           icon={<Send className="text-green-600" />}
-          onClick={() => dispatch(setView('SENT'))}
+          onClick={() => handleNavigation(() => dispatch(setView('SENT')))}
         />
         <NavButton
           icon={<Pencil className="text-blue-600" />}
           label="Compose"
-          onClick={() => dispatch(openCompose())}
+          onClick={() => handleNavigation(() => dispatch(openCompose()))}
         />
         {/* <NavButton
           icon={<Search />}

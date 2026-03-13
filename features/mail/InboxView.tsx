@@ -123,12 +123,12 @@ export default function InboxView() {
   return (
     <div
       ref={scrollContainerRef}
-      className="max-w-full max-h-screen overflow-y-auto no-scrollbar p-4"
+      className="w-full h-full overflow-y-auto no-scrollbar p-2 sm:p-4\"
     >
-      <div className="flex flex-row space-x-2 items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:space-x-2 sm:items-center sm:justify-between gap-2 sm:gap-0">
         <div className="flex items-center space-x-2">
-          <Inbox className="w-6 h-6 mb-4 text-red-600" />
-          <h1 className="text-2xl font-bold mb-4">Inbox</h1>
+          <Inbox className="w-5 h-5 sm:w-6 sm:h-6 mb-2 sm:mb-4 text-red-600" />
+          <h1 className="text-xl sm:text-2xl font-bold mb-2 sm:mb-4">Inbox</h1>
         </div>
         <div className="flex items-center gap-2">
           <FilterPanel />
@@ -144,34 +144,35 @@ export default function InboxView() {
               >
                 <X className="cursor-pointer" />
               </Button>
-              <span className="text-sm text-muted-foreground">(filtered)</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">(
+                filtered)</span>
             </div>
           )}
         </div>
       </div>
 
       {error && (
-        <div className="text-red-600 bg-red-50 p-3 rounded mb-4">{error}</div>
+        <div className="text-red-600 bg-red-50 p-3 rounded mb-4 text-sm">{error}</div>
       )}
 
       {loading ? (
-        <div className="text-center py-8 text-muted-foreground">
+        <div className="text-center py-8 text-muted-foreground text-sm  ">
           Loading emails...
         </div>
       ) : emails.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
+        <div className="text-center py-8 text-muted-foreground text-sm    ">
           No emails found
         </div>
       ) : (
         <>
           <EmailList emails={filteredEmails} />
           {loadingMore && (
-            <div className="text-center py-4 text-sm text-muted-foreground">
+            <div className="text-center py-4 text-xs sm:text-sm text-muted-foreground">
               Loading more emails...
             </div>
           )}
           {!hasMore && emails.length > 0 && (
-            <div className="text-center py-4 text-sm text-muted-foreground">
+            <div className="text-center py-4 text-xs sm:text-sm text-muted-foreground">
               No more emails to load
             </div>
           )}

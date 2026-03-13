@@ -63,28 +63,32 @@ export default function EmailDetailView() {
   };
 
   return (
-    <div className="max-w-full max-h-screen overflow-y-auto no-scrollbar p-4 space-y-4">
-      <div className="flex gap-2">
-        <Button onClick={handleBack} variant="ghost">
+    <div className="w-full h-full overflow-y-auto no-scrollbar p-2 sm:p-4 space-y-4">
+      <div className="flex gap-2 flex-wrap">
+        <Button onClick={handleBack} variant="ghost" size="sm">
           Back
         </Button>
         {email.unread && (
-          <Button onClick={handleMarkAsRead} variant="ghost">
+          <Button onClick={handleMarkAsRead} variant="ghost" size="sm">
             Mark as Read
           </Button>
         )}
       </div>
 
-      <div className="border rounded-xl p-5 space-y-3">
-        <div className="text-sm text-muted-foreground ">From: {email.from}</div>
+      <div className="border rounded-xl p-3 sm:p-5 space-y-3">
+        <div className="text-xs sm:text-sm text-muted-foreground">
+          From: {email.from}
+        </div>
 
-        <h2 className="text-xl font-semibold">{email.subject}</h2>
+        <h2 className="text-lg sm:text-xl font-semibold wrap-break-word">
+          {email.subject}
+        </h2>
 
         {email.htmlBody ? (
           <iframe
             srcDoc={processedHtmlBody}
             sandbox="allow-same-origin"
-            className="w-full min-h-96 border-0"
+            className="w-full min-h-64 sm:min-h-96 border-0"
             style={{
               colorScheme: 'light dark',
             }}

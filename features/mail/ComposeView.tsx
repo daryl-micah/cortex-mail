@@ -11,9 +11,11 @@ export default function ComposeView() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-6">
-      <div className="border rounded-lg shadow-lg bg-card overflow-hidden">
-        <ComposeForm />
+    <div className="w-full h-full overflow-y-auto no-scrollbar p-2 sm:p-4">
+      <div className="max-w-3xl mx-auto">
+        <div className="border rounded-lg shadow-lg bg-card overflow-hidden">
+          <ComposeForm />
+        </div>
       </div>
     </div>
   );
