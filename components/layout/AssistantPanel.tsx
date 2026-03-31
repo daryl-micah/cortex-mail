@@ -176,7 +176,7 @@ export default function AssistantPanel({ onClose }: AssistantPanelProps) {
   };
 
   return (
-    <aside className="border-l border-border h-full flex flex-col bg-background">
+    <aside className="border-l border-border h-full min-h-0 flex flex-col bg-background">
       <div className="flex flex-row justify-between p-4 border-b">
         <div>
           <h2 className="text-sm font-semibold">AI Assistant</h2>
@@ -196,7 +196,7 @@ export default function AssistantPanel({ onClose }: AssistantPanelProps) {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-3">
+      <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar p-4 space-y-3">
         {messages.length === 0 && (
           <div className="text-sm text-muted-foreground space-y-2">
             <p className="font-medium">Try asking:</p>
