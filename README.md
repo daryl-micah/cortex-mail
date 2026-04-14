@@ -2,7 +2,7 @@
 
 AI-powered email client where the assistant controls the UI via a ReAct agent loop. Built with Next.js, Gmail API, Groq (Llama 3.3 70B), Pinecone, and Zod.
 
-**Live Demo**: https://cortex-mail-azure.vercel.app
+**Live Demo**: https://cortex-mail.darylmicah.me
 
 ## Features
 
