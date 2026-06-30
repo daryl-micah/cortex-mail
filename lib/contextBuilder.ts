@@ -10,7 +10,7 @@ const RAG_BUDGET = 2000;
 const RECENT_TURNS_TO_KEEP = 6;
 
 // Small fast model for summarisation — keeps latency and cost low
-const SUMMARY_MODEL = 'llama-3.1-8b-instant';
+const SUMMARY_MODEL = 'openai/gpt-oss-20b';
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 

@@ -1,6 +1,6 @@
 # Cortex Mail
 
-AI-powered email client where the assistant controls the UI via a ReAct agent loop. Built with Next.js, Gmail API, Groq (Llama 3.3 70B), Pinecone, and Zod.
+AI-powered email client where the assistant controls the UI via a ReAct agent loop. Built with Next.js, Gmail API, Groq (GPT-OSS 120B), Pinecone, and Zod.
 
 **Live Demo**: https://cortex-mail.darylmicah.me
 
@@ -95,7 +95,7 @@ The dispatcher translates agent action payloads into Redux state changes. This d
 
 ### Groq for Inference
 
-Llama 3.3 70B via Groq. Fast enough that the ReAct loop completes in under 3 seconds for most multi-step queries. `response_format: { type: 'json_object' }` combined with Zod validation eliminates the need for regex parsing fallbacks.
+GPT-OSS 120B via Groq. Fast enough that the ReAct loop completes in under 3 seconds for most multi-step queries. `response_format: { type: 'json_object' }` combined with Zod validation eliminates the need for regex parsing fallbacks. Conversation summarisation uses the lighter GPT-OSS 20B model.
 
 ## What I'd Improve With More Time
 

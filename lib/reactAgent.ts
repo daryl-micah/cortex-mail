@@ -11,7 +11,7 @@ import { logLLMCall, logAgentRun } from './aiLogger';
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-const MODEL = 'llama-3.3-70b-versatile';
+const MODEL = 'openai/gpt-oss-120b';
 const MAX_ITERATIONS = 5;
 const MAX_RETRIES = 2;
 
