@@ -13,6 +13,7 @@ import {
   ChevronRight,
   MessageSquareOff,
   Send,
+  X,
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import type { AgentStep, AgentAction } from '@/lib/schemas';
@@ -44,7 +45,7 @@ export default function AssistantPanel({ onClose }: AssistantPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const selectedEmailId = useAppSelector((state) => state.ui.selectedEmailId);
+  const selectedEmailId = useAppSelector((state) => state.ui.detailEmailId);
   const compose = useAppSelector((state) => state.mail.compose);
 
   // Restore conversation from localStorage
@@ -176,24 +177,33 @@ export default function AssistantPanel({ onClose }: AssistantPanelProps) {
   };
 
   return (
-    <aside className="border-l border-border h-full min-h-0 flex flex-col bg-background">
-      <div className="flex flex-row justify-between p-4 border-b">
+    <aside className="h-full min-h-0 flex flex-col bg-card">
+      <div className="flex flex-row justify-between items-start p-4 border-b border-border">
         <div>
-          <h2 className="text-sm font-semibold">AI Assistant</h2>
+          <h2 className="text-sm font-semibold flex items-center gap-1.5">
+            <span className="chrome-label text-accent">✦</span> Ask Cortex
+          </h2>
           <p className="text-xs text-muted-foreground mt-1">
             I can help you manage emails
           </p>
         </div>
-        {messages.length > 0 && (
-          <Button
-            variant="ghost"
-            className="hover:bg-red-100 cursor-pointer"
-            title="Clear Chat"
-            onClick={handleClear}
-          >
-            <MessageSquareOff />
-          </Button>
-        )}
+        <div className="flex items-center gap-1">
+          {messages.length > 0 && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              title="Clear Chat"
+              onClick={handleClear}
+            >
+              <MessageSquareOff className="h-4 w-4" />
+            </Button>
+          )}
+          {onClose && (
+            <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Close">
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar p-4 space-y-3">

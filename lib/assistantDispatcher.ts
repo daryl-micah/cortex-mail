@@ -1,5 +1,5 @@
 import { store } from '@/store';
-import { openCompose, openEmail, setView } from '@/store/uiSlice';
+import { openCompose, closeCompose, openEmail, setView } from '@/store/uiSlice';
 import {
   setFilters,
   setCompose,
@@ -37,7 +37,7 @@ export function dispatchAssistantAction(action: AssistantAction): string {
 
     case 'SEND_EMAIL_CONFIRMED':
       store.dispatch(sendEmail());
-      store.dispatch(setView('INBOX'));
+      store.dispatch(closeCompose());
       return 'Email sent successfully!';
 
     case 'FILTER_EMAILS':
@@ -57,7 +57,7 @@ export function dispatchAssistantAction(action: AssistantAction): string {
 
     case 'REPLY_TO_CURRENT': {
       const currentEmail = state.mail.emails.find(
-        (e) => e.id === state.ui.selectedEmailId
+        (e) => e.id === state.ui.detailEmailId
       );
       if (currentEmail) {
         store.dispatch(openCompose());
@@ -130,7 +130,7 @@ export function dispatchAgentActions(actions: AgentAction[]): {
 
       case 'REPLY_TO_EMAIL': {
         const emailId =
-          (payload?.emailId as string) ?? state.ui.selectedEmailId;
+          (payload?.emailId as string) ?? state.ui.detailEmailId;
         const replyBody = payload?.body as string | undefined;
         const target = state.mail.emails.find((e) => e.id === emailId);
         if (target) {

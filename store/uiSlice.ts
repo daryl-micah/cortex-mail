@@ -1,21 +1,26 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 export type ViewMode =
+  | 'TODAY'
   | 'INBOX'
   | 'SENT'
-  | 'EMAIL_DETAIL'
-  | 'OPEN_COMPOSE'
-  | 'SEARCH';
+  | 'SEARCH'
+  | 'NEEDS_REPLY'
+  | 'WAITING_ON'
+  | 'FOLLOW_UP'
+  | 'STARRED';
 
 export interface UIState {
   view: ViewMode;
-  selectedEmailId: string | null;
+  detailEmailId: string | null;
+  composeOpen: boolean;
   searchQuery: string;
 }
 
 const initialState: UIState = {
-  view: 'INBOX',
-  selectedEmailId: null,
+  view: 'TODAY',
+  detailEmailId: null,
+  composeOpen: false,
   searchQuery: '',
 };
 
@@ -28,15 +33,28 @@ const uiSlice = createSlice({
     },
 
     openEmail: (state, action: PayloadAction<string>) => {
-      state.view = 'EMAIL_DETAIL';
-      state.selectedEmailId = action.payload;
+      state.detailEmailId = action.payload;
+    },
+
+    closeEmail: (state) => {
+      state.detailEmailId = null;
     },
 
     openCompose(state) {
-      state.view = 'OPEN_COMPOSE';
+      state.composeOpen = true;
+    },
+
+    closeCompose(state) {
+      state.composeOpen = false;
     },
   },
 });
 
-export const { setView, openEmail, openCompose } = uiSlice.actions;
+export const {
+  setView,
+  openEmail,
+  closeEmail,
+  openCompose,
+  closeCompose,
+} = uiSlice.actions;
 export default uiSlice.reducer;

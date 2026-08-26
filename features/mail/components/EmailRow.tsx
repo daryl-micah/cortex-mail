@@ -1,82 +1,136 @@
 'use client';
 
-import { cn } from '@/lib/utils';
+import { cn, formatMailDate } from '@/lib/utils';
 import { openEmail } from '@/store/uiSlice';
-import { markAsRead } from '@/store/mailSlice';
-import { Email } from '@/types/mail';
-import { useAppDispatch } from '@/store';
-import { Button } from '@/components/ui/button';
-import { Check } from 'lucide-react';
+import { markAsRead, toggleStar } from '@/store/mailSlice';
+import { Email, EmailCategory } from '@/types/mail';
+import { useAppDispatch, useAppSelector } from '@/store';
+import { Star, Paperclip } from 'lucide-react';
 import { useState } from 'react';
+import AIStatusBadge from './AIStatusBadge';
 
 interface Props {
   email: Email;
 }
 
+const CATEGORY_DOT: Record<EmailCategory, string> = {
+  primary: 'bg-accent',
+  promotions: 'bg-pink',
+  updates: 'bg-ice',
+  social: 'bg-mint',
+  forums: 'bg-muted-foreground',
+};
+
 export default function EmailRow({ email }: Props) {
   const dispatch = useAppDispatch();
-  const [marking, setMarking] = useState(false);
+  const detailEmailId = useAppSelector((state) => state.ui.detailEmailId);
+  const [starring, setStarring] = useState(false);
+  const isSelected = detailEmailId === email.id;
 
-  const handleMarkAsRead = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (marking || !email.unread) return;
-
-    setMarking(true);
-    try {
-      const response = await fetch('/api/emails/mark-read', {
+  const handleOpen = () => {
+    dispatch(openEmail(email.id));
+    if (email.unread) {
+      fetch('/api/emails/mark-read', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messageId: email.id }),
-      });
+      }).catch(() => {});
+      dispatch(markAsRead(email.id));
+    }
+  };
 
-      if (response.ok) {
-        dispatch(markAsRead(email.id));
+  const handleToggleStar = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (starring) return;
+    const next = !email.starred;
+    setStarring(true);
+    dispatch(toggleStar({ id: email.id, starred: next }));
+    try {
+      const response = await fetch('/api/emails/star', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messageId: email.id, starred: next }),
+      });
+      if (!response.ok) {
+        dispatch(toggleStar({ id: email.id, starred: !next }));
       }
-    } catch (error) {
-      console.error('Failed to mark as read:', error);
+    } catch {
+      dispatch(toggleStar({ id: email.id, starred: !next }));
     } finally {
-      setMarking(false);
+      setStarring(false);
     }
   };
 
   return (
     <div
-      onClick={() => dispatch(openEmail(email.id))}
+      onClick={handleOpen}
       className={cn(
-        'p-2 sm:p-3 rounded-lg cursor-pointer hover:bg-muted transition',
-        email.unread && 'bg-muted/50'
+        'group flex items-start gap-2.5 px-3 py-2 cursor-pointer border-b border-border transition-colors',
+        isSelected
+          ? 'bg-surface-2 border-l-2 border-l-accent -ml-px'
+          : 'hover:bg-surface-2 border-l-2 border-l-transparent'
       )}
     >
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
-        <div className="flex-1 min-w-0">
-          <span className="font-medium text-sm sm:text-base block truncate">
-            {email.from}
-          </span>
-          <div className="text-xs sm:text-sm text-muted-foreground truncate">
-            {email.subject}
-          </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="text-xs text-muted-foreground whitespace-nowrap">
-            {email.date}
-          </span>
-          {email.unread && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-6 w-6 sm:h-7 sm:w-7 p-0 cursor-pointer shrink-0"
-              onClick={handleMarkAsRead}
-              disabled={marking}
-              title="Mark as read"
-            >
-              <Check className="h-3 w-3" />
-            </Button>
-          )}
-        </div>
-      </div>
+      <span
+        className={cn(
+          'mt-1.5 h-1.5 w-1.5 rounded-full shrink-0',
+          email.unread ? CATEGORY_DOT[email.category] : 'bg-transparent'
+        )}
+      />
 
-      <div className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mt-1">
-        {email.preview}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <span
+            className={cn(
+              'text-sm truncate',
+              email.unread ? 'font-semibold text-foreground' : 'text-muted-foreground'
+            )}
+          >
+            {email.fromName}
+          </span>
+          <span className="chrome-label text-muted-foreground shrink-0">
+            {formatMailDate(email.date)}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between gap-2">
+          <span
+            className={cn(
+              'text-[13px] truncate',
+              email.unread ? 'text-foreground' : 'text-muted-foreground'
+            )}
+          >
+            {email.subject || '(no subject)'}
+          </span>
+          <span className="flex items-center gap-1 shrink-0">
+            {email.attachments && email.attachments.length > 0 && (
+              <Paperclip className="h-3 w-3 text-muted-foreground" />
+            )}
+            <button
+              onClick={handleToggleStar}
+              className={cn(
+                'transition-opacity',
+                email.starred ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+              )}
+              title={email.starred ? 'Unstar' : 'Star'}
+            >
+              <Star
+                className={cn(
+                  'h-3.5 w-3.5',
+                  email.starred
+                    ? 'fill-accent text-accent'
+                    : 'text-muted-foreground'
+                )}
+              />
+            </button>
+          </span>
+        </div>
+
+        <div className="text-xs text-muted-foreground truncate mt-0.5">
+          {email.preview}
+        </div>
+
+        {email.ai && <AIStatusBadge ai={email.ai} className="mt-1" />}
       </div>
     </div>
   );

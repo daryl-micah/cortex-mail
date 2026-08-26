@@ -67,12 +67,12 @@ export default function FilterPanel() {
       </Button>
 
       {showPanel && (
-        <div className="absolute right-0 top-12 z-50 w-80 bg-background border rounded-lg shadow-lg p-4 space-y-4">
+        <div className="absolute right-0 top-12 z-50 w-80 bg-card bevel rounded-lg shadow-lg p-4 space-y-4">
           <div className="flex justify-between items-center">
-            <h3 className="font-semibold">Filter Emails</h3>
+            <h3 className="font-semibold text-sm">Filter Emails</h3>
             <Button
               variant="ghost"
-              size="sm"
+              size="icon-sm"
               onClick={() => setShowPanel(false)}
             >
               <X className="h-4 w-4" />
@@ -94,28 +94,16 @@ export default function FilterPanel() {
                 Date Range
               </label>
               <select
-                className="w-full px-3 py-2 border bg-accent rounded-md text-sm text-foreground"
+                className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm text-foreground"
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
               >
-                <option className="bg-slate-800" value="">
-                  All dates
-                </option>
-                <option className="bg-slate-800" value="today">
-                  Today
-                </option>
-                <option className="bg-slate-800" value="yesterday">
-                  Yesterday
-                </option>
-                <option className="bg-slate-800" value="last-7-days">
-                  Last 7 days
-                </option>
-                <option className="bg-slate-800" value="last-30-days">
-                  Last 30 days
-                </option>
-                <option className="bg-slate-800" value="last-3-months">
-                  Last 3 months
-                </option>
+                <option value="">All dates</option>
+                <option value="today">Today</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="last-7-days">Last 7 days</option>
+                <option value="last-30-days">Last 30 days</option>
+                <option value="last-3-months">Last 3 months</option>
               </select>
             </div>
 
@@ -125,7 +113,7 @@ export default function FilterPanel() {
                 id="unread-only"
                 checked={unreadOnly}
                 onChange={(e) => setUnreadOnly(e.target.checked)}
-                className="h-4 w-4"
+                className="h-4 w-4 accent-accent"
               />
               <label htmlFor="unread-only" className="text-sm cursor-pointer">
                 Show unread only
@@ -133,11 +121,11 @@ export default function FilterPanel() {
             </div>
           </div>
 
-          <div className="flex gap-2 pt-2 border-t">
+          <div className="flex gap-2 pt-2 border-t border-border">
             <Button onClick={applyFilters} className="flex-1">
               Apply Filters
             </Button>
-            <Button onClick={clearFilters} variant="outline">
+            <Button onClick={clearFilters} variant="outline" className="bevel">
               Clear
             </Button>
           </div>

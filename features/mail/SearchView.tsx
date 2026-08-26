@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAppDispatch } from '@/store';
-import { openEmail, setView } from '@/store/uiSlice';
+import { openEmail } from '@/store/uiSlice';
 import { markAsRead } from '@/store/mailSlice';
 
 interface SearchResult {
@@ -62,7 +62,6 @@ export default function SearchView() {
   const handleOpen = (id: string) => {
     dispatch(openEmail(id));
     dispatch(markAsRead(id));
-    dispatch(setView('EMAIL_DETAIL'));
   };
 
   /** Relevance score (0–1) formatted as a percentage */

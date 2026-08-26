@@ -19,11 +19,11 @@ export default function ConfirmSendDialog({
   onCancel,
 }: ConfirmSendDialogProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-background border rounded-lg shadow-lg p-6 max-w-md w-full mx-4">
+    <div className="fixed inset-0 z-60 flex items-center justify-center bg-[#1B1826]/25">
+      <div className="bg-card bevel rounded-lg shadow-2xl p-6 max-w-md w-full mx-4">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">Confirm Send Email</h3>
-          <Button variant="ghost" size="sm" onClick={onCancel}>
+          <Button variant="ghost" size="icon-sm" onClick={onCancel}>
             <X className="h-4 w-4" />
           </Button>
         </div>

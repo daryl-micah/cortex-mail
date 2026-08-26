@@ -87,3 +87,27 @@ export function validateAgentResponse(data: unknown): AgentResponse {
   }
   return result.data;
 }
+
+// ---------------------------------------------------------------------------
+// Email classification — AI-derived inbox status (Today view, Needs Reply, etc.)
+// ---------------------------------------------------------------------------
+export const EmailClassificationSchema = z.object({
+  id: z.string(),
+  status: z.enum([
+    'needs_reply',
+    'waiting_on',
+    'follow_up',
+    'fyi',
+    'important',
+    'handled',
+  ]),
+  reason: z.string(),
+  deadline: z.string().optional(),
+  summary: z.string().optional(),
+});
+
+export const ClassificationResponseSchema = z.object({
+  classifications: z.array(EmailClassificationSchema),
+});
+
+export type EmailClassification = z.infer<typeof EmailClassificationSchema>;

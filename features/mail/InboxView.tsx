@@ -3,9 +3,11 @@
 import { useAppSelector, useAppDispatch } from '@/store';
 import EmailList from '../mail/components/EmailList';
 import FilterPanel from '../mail/components/FilterPanel';
-import { Inbox, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useMemo, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import type { AIStatus } from '@/types/mail';
 import {
   setFilters,
   appendEmails,
@@ -13,7 +15,17 @@ import {
   setError,
 } from '@/store/mailSlice';
 
-export default function InboxView() {
+interface InboxViewProps {
+  statusFilter?: AIStatus;
+  starredOnly?: boolean;
+  title?: string;
+}
+
+export default function InboxView({
+  statusFilter,
+  starredOnly,
+  title = 'Inbox',
+}: InboxViewProps) {
   const emails = useAppSelector((state) => state.mail.emails);
   const filters = useAppSelector((state) => state.mail.filters);
   const loading = useAppSelector((state) => state.mail.loading);
@@ -78,6 +90,14 @@ export default function InboxView() {
   const filteredEmails = useMemo(() => {
     let result = [...emails];
 
+    if (statusFilter) {
+      result = result.filter((email) => email.ai?.status === statusFilter);
+    }
+
+    if (starredOnly) {
+      result = result.filter((email) => email.starred);
+    }
+
     if (filters.unread !== undefined) {
       result = result.filter((email) => email.unread === filters.unread);
     }
@@ -118,62 +138,86 @@ export default function InboxView() {
     }
 
     return result;
-  }, [emails, filters]);
+  }, [emails, filters, statusFilter, starredOnly]);
+
+  const unreadActive = filters.unread === true;
 
   return (
     <div
       ref={scrollContainerRef}
-      className="w-full h-full overflow-y-auto no-scrollbar p-2 sm:p-4\"
+      className="w-full h-full overflow-y-auto no-scrollbar p-3 sm:p-5"
     >
-      <div className="flex flex-col sm:flex-row sm:space-x-2 sm:items-center sm:justify-between gap-2 sm:gap-0">
-        <div className="flex items-center space-x-2">
-          <Inbox className="w-5 h-5 sm:w-6 sm:h-6 mb-2 sm:mb-4 text-red-600" />
-          <h1 className="text-xl sm:text-2xl font-bold mb-2 sm:mb-4">Inbox</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-3">
+        <div className="flex items-center gap-3">
+          <h1 className="text-lg font-semibold">{title}</h1>
+          <div className="flex items-center gap-1 bevel rounded-md p-0.5 bg-surface-2">
+            <button
+              onClick={() => dispatch(setFilters({ ...filters, unread: undefined }))}
+              className={cn(
+                'px-2.5 py-1 rounded text-xs font-medium transition-colors',
+                !unreadActive
+                  ? 'bg-card text-foreground bevel'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              All
+            </button>
+            <button
+              onClick={() => dispatch(setFilters({ ...filters, unread: true }))}
+              className={cn(
+                'px-2.5 py-1 rounded text-xs font-medium transition-colors',
+                unreadActive
+                  ? 'bg-card text-foreground bevel'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              Unread
+            </button>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <FilterPanel />
           {Object.keys(filters).length > 0 && (
             <div className="flex flex-row items-center space-x-1">
               <Button
-                className="hover:bg-red-100"
                 variant="ghost"
-                size="sm"
-                onClick={() => {
-                  dispatch(setFilters({}));
-                }}
+                size="icon-sm"
+                onClick={() => dispatch(setFilters({}))}
+                title="Clear filters"
               >
-                <X className="cursor-pointer" />
+                <X className="h-3.5 w-3.5" />
               </Button>
-              <span className="text-xs sm:text-sm text-muted-foreground">(
-                filtered)</span>
+              <span className="chrome-label text-muted-foreground">filtered</span>
             </div>
           )}
         </div>
       </div>
 
       {error && (
-        <div className="text-red-600 bg-red-50 p-3 rounded mb-4 text-sm">{error}</div>
+        <div className="text-destructive bg-destructive/10 p-3 rounded-md mb-4 text-sm bevel">
+          {error}
+        </div>
       )}
 
       {loading ? (
-        <div className="text-center py-8 text-muted-foreground text-sm  ">
+        <div className="text-center py-8 text-muted-foreground text-sm">
           Loading emails...
         </div>
-      ) : emails.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground text-sm    ">
+      ) : filteredEmails.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground text-sm">
           No emails found
         </div>
       ) : (
         <>
           <EmailList emails={filteredEmails} />
           {loadingMore && (
-            <div className="text-center py-4 text-xs sm:text-sm text-muted-foreground">
-              Loading more emails...
+            <div className="text-center py-4 chrome-label text-muted-foreground">
+              Loading more…
             </div>
           )}
           {!hasMore && emails.length > 0 && (
-            <div className="text-center py-4 text-xs sm:text-sm text-muted-foreground">
-              No more emails to load
+            <div className="text-center py-4 chrome-label text-muted-foreground">
+              {filteredEmails.length} of {emails.length}
             </div>
           )}
         </>
