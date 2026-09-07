@@ -2,8 +2,14 @@
 
 import { Button } from '@/components/ui/button';
 import { RootState } from '@/store';
-import { closeEmail, openCompose } from '@/store/uiSlice';
-import { setCompose, setInsight, removeEmails, setUnread } from '@/store/mailSlice';
+import { closeEmail, openCompose, openEmail } from '@/store/uiSlice';
+import {
+  setCompose,
+  setInsight,
+  removeEmails,
+  setUnread,
+  upsertEmail,
+} from '@/store/mailSlice';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -50,12 +56,14 @@ export default function EmailDetailView() {
   const dispatch = useAppDispatch();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [iframeHeight, setIframeHeight] = useState(300);
+  const [lookup, setLookup] = useState<'idle' | 'loading' | 'missing'>('idle');
   const [insightLoading, setInsightLoading] = useState(false);
   const [askInput, setAskInput] = useState('');
   const {
     ask,
     asking,
     answer,
+    citedEmails,
     error: askError,
     showConfirmDialog,
     confirmSend,
@@ -72,6 +80,38 @@ export default function EmailDetailView() {
     );
     return inboxEmail || sentEmail;
   });
+
+  // A semantic-search hit, or an agent-proposed action, can reference an email
+  // this client never loaded — a later inbox page, or one already archived.
+  // Fetch it on demand rather than claiming it doesn't exist.
+  useEffect(() => {
+    if (!detailEmailId || email) {
+      setLookup('idle');
+      return;
+    }
+
+    let cancelled = false;
+    setLookup('loading');
+
+    fetch(`/api/emails/message/${encodeURIComponent(detailEmailId)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        if (data?.email) {
+          dispatch(upsertEmail(data.email));
+          setLookup('idle');
+        } else {
+          setLookup('missing');
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setLookup('missing');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [detailEmailId, email, dispatch]);
 
   const sanitizedSrcDoc = useMemo(() => {
     if (!email?.htmlBody) return undefined;
@@ -163,7 +203,18 @@ export default function EmailDetailView() {
             <X className="h-4 w-4" />
           </Button>
         </header>
-        <div className="p-4 text-muted-foreground text-sm">Email not found</div>
+        {lookup === 'loading' ? (
+          <div className="p-4 space-y-2" aria-busy="true">
+            <Skeleton className="h-5 w-3/5 rounded" />
+            <Skeleton className="h-4 w-2/5 rounded" />
+            <Skeleton className="h-4 w-full rounded" />
+            <Skeleton className="h-4 w-4/5 rounded" />
+          </div>
+        ) : (
+          <div className="p-4 text-muted-foreground text-sm">
+            Email not found. It may have been deleted from Gmail.
+          </div>
+        )}
       </div>
     );
   }
@@ -390,6 +441,38 @@ export default function EmailDetailView() {
             <div className="text-sm whitespace-pre-wrap font-email bevel rounded-md bg-surface-2 p-3">
               {answer}
             </div>
+          )}
+          {/* Emails the answer refers to. Clicking one swaps this drawer over
+              to that thread. */}
+          {!asking && citedEmails.length > 0 && (
+            <ul className="mt-2 space-y-1">
+              {citedEmails
+                .filter((cited) => cited.id !== detailEmailId)
+                .map((cited) => (
+                  <li key={cited.id}>
+                    <button
+                      onClick={() => dispatch(openEmail(cited.id))}
+                      className="w-full text-left px-3 py-2 rounded-md bevel bg-surface-2 hover:bg-white transition-colors"
+                    >
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="text-sm truncate font-email text-foreground">
+                          {cited.subject || '(no subject)'}
+                        </span>
+                        {cited.date && (
+                          <span className="chrome-label text-muted-foreground shrink-0">
+                            {formatMailDate(cited.date)}
+                          </span>
+                        )}
+                      </div>
+                      {cited.from && (
+                        <span className="text-xs text-muted-foreground truncate font-email">
+                          {cited.from}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+            </ul>
           )}
         </section>
       </div>

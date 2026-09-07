@@ -31,6 +31,115 @@ export function getGmailClient(session: Session) {
 }
 
 /**
+ * Turn a raw Gmail message into the app's `Email` shape: body, HTML body,
+ * attachments, sender, and the headers we thread replies with.
+ *
+ * Shared by the inbox listing and the single-message fetch so a message
+ * opened from search looks identical to one opened from the list.
+ */
+export function normalizeMessage(data: gmail_v1.Schema$Message) {
+  const headers = data.payload?.headers || [];
+  const getHeader = (name: string) =>
+    headers.find((h) => h.name?.toLowerCase() === name.toLowerCase())?.value ||
+    '';
+
+  // Get email body (both plain text and HTML)
+  let body = '';
+  let htmlBody = '';
+  const attachments: EmailAttachment[] = [];
+
+  // Recursive function to extract body and attachments from parts
+  const extractContent = (parts: gmail_v1.Schema$MessagePart[]) => {
+    for (const part of parts) {
+      if (part.parts) {
+        // Recursively handle multipart
+        extractContent(part.parts);
+      } else if (part.mimeType === 'text/plain' && !body && part.body?.data) {
+        body = Buffer.from(part.body.data, 'base64').toString('utf-8');
+      } else if (part.mimeType === 'text/html' && part.body?.data) {
+        htmlBody = Buffer.from(part.body.data, 'base64').toString('utf-8');
+      } else if (part.filename && part.body?.attachmentId) {
+        const partHeaders = part.headers ?? [];
+        // Handle attachments (including inline images)
+        attachments.push({
+          attachmentId: part.body.attachmentId,
+          filename: part.filename,
+          mimeType: part.mimeType || 'application/octet-stream',
+          size: part.body.size || 0,
+          isInline: partHeaders.some(
+            (h) =>
+              h.name?.toLowerCase() === 'content-disposition' &&
+              !!h.value?.includes('inline')
+          ),
+          contentId: partHeaders
+            .find((h) => h.name?.toLowerCase() === 'content-id')
+            ?.value?.replace(/[<>]/g, ''),
+        });
+      }
+    }
+  };
+
+  const parts = data.payload?.parts || [];
+  if (parts.length > 0) {
+    extractContent(parts);
+  } else if (data.payload?.body?.data) {
+    // Simple message without parts
+    const mimeType = data.payload.mimeType;
+    const bodyData = Buffer.from(data.payload.body.data, 'base64').toString(
+      'utf-8'
+    );
+    if (mimeType === 'text/html') {
+      htmlBody = bodyData;
+    } else {
+      body = bodyData;
+    }
+  }
+
+  const fromHeader = getHeader('From');
+  const sender = parseSender(fromHeader);
+
+  return {
+    id: data.id!,
+    from: fromHeader,
+    fromName: sender.name,
+    fromEmail: sender.email,
+    initials: sender.initials,
+    subject: getHeader('Subject'),
+    preview: buildPreview(body || htmlBody, 140),
+    body: body,
+    htmlBody: htmlBody || undefined,
+    date: new Date(parseInt(data.internalDate || '0')).toISOString(),
+    unread: data.labelIds?.includes('UNREAD') || false,
+    starred: data.labelIds?.includes('STARRED') || false,
+    category: categoryFromLabels(data.labelIds || undefined),
+    threadId: data.threadId,
+    messageId: getHeader('Message-ID') || undefined,
+    attachments: attachments.length > 0 ? attachments : undefined,
+  };
+}
+
+/**
+ * Fetch a single message by id, regardless of whether it is still in the
+ * inbox. Search hits and agent-proposed actions can reference archived mail
+ * or mail from a page the client never loaded.
+ */
+export async function fetchEmailById(session: Session, id: string) {
+  const gmail = getGmailClient(session);
+
+  try {
+    const msg = await gmail.users.messages.get({
+      userId: 'me',
+      id,
+      format: 'full',
+    });
+    return normalizeMessage(msg.data);
+  } catch (error) {
+    console.error('Error fetching email by id:', error);
+    return null;
+  }
+}
+
+/**
  * Fetch emails from Gmail
  */
 export async function fetchEmails(
@@ -58,90 +167,7 @@ export async function fetchEmails(
         id: message.id!,
         format: 'full',
       });
-
-      const headers = msg.data.payload?.headers || [];
-      const getHeader = (name: string) =>
-        headers.find((h) => h.name?.toLowerCase() === name.toLowerCase())
-          ?.value || '';
-
-      // Get email body (both plain text and HTML)
-      let body = '';
-      let htmlBody = '';
-      const attachments: EmailAttachment[] = [];
-
-      // Recursive function to extract body and attachments from parts
-      const extractContent = (parts: gmail_v1.Schema$MessagePart[]) => {
-        for (const part of parts) {
-          if (part.parts) {
-            // Recursively handle multipart
-            extractContent(part.parts);
-          } else if (
-            part.mimeType === 'text/plain' &&
-            !body &&
-            part.body?.data
-          ) {
-            body = Buffer.from(part.body.data, 'base64').toString('utf-8');
-          } else if (part.mimeType === 'text/html' && part.body?.data) {
-            htmlBody = Buffer.from(part.body.data, 'base64').toString('utf-8');
-          } else if (part.filename && part.body?.attachmentId) {
-            const partHeaders = part.headers ?? [];
-            // Handle attachments (including inline images)
-            attachments.push({
-              attachmentId: part.body.attachmentId,
-              filename: part.filename,
-              mimeType: part.mimeType || 'application/octet-stream',
-              size: part.body.size || 0,
-              isInline: partHeaders.some(
-                (h) =>
-                  h.name?.toLowerCase() === 'content-disposition' &&
-                  !!h.value?.includes('inline')
-              ),
-              contentId: partHeaders
-                .find((h) => h.name?.toLowerCase() === 'content-id')
-                ?.value?.replace(/[<>]/g, ''),
-            });
-          }
-        }
-      };
-
-      const parts = msg.data.payload?.parts || [];
-      if (parts.length > 0) {
-        extractContent(parts);
-      } else if (msg.data.payload?.body?.data) {
-        // Simple message without parts
-        const mimeType = msg.data.payload.mimeType;
-        const bodyData = Buffer.from(
-          msg.data.payload.body.data,
-          'base64'
-        ).toString('utf-8');
-        if (mimeType === 'text/html') {
-          htmlBody = bodyData;
-        } else {
-          body = bodyData;
-        }
-      }
-
-      const fromHeader = getHeader('From');
-      const sender = parseSender(fromHeader);
-
-      return {
-        id: msg.data.id!,
-        from: fromHeader,
-        fromName: sender.name,
-        fromEmail: sender.email,
-        initials: sender.initials,
-        subject: getHeader('Subject'),
-        preview: buildPreview(body || htmlBody, 140),
-        body: body,
-        htmlBody: htmlBody || undefined,
-        date: new Date(parseInt(msg.data.internalDate || '0')).toISOString(),
-        unread: msg.data.labelIds?.includes('UNREAD') || false,
-        starred: msg.data.labelIds?.includes('STARRED') || false,
-        category: categoryFromLabels(msg.data.labelIds || undefined),
-        threadId: msg.data.threadId,
-        messageId: getHeader('Message-ID') || undefined,
-        attachments: attachments.length > 0 ? attachments : undefined,
-      };
+      return normalizeMessage(msg.data);
     });
 
     const emails = await Promise.all(emailPromises);

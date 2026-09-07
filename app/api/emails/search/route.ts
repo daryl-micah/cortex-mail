@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { searchEmails } from '@/lib/embeddings';
+import { getUserKey } from '@/lib/session';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -16,13 +17,17 @@ export async function POST(request: NextRequest) {
   }
 
   const { query, topK = 10 } = body;
+  const userKey = getUserKey(session);
+  if (!userKey) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   if (!query || typeof query !== 'string' || query.trim() === '') {
     return NextResponse.json({ error: 'query is required' }, { status: 400 });
   }
 
   try {
-    const results = await searchEmails(query.trim(), topK);
+    const results = await searchEmails(userKey, query.trim(), topK);
     return NextResponse.json({ results });
   } catch (error) {
     console.error('[search] error:', error);

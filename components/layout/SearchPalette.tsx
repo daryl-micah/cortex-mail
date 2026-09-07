@@ -13,6 +13,7 @@ import { useAskCortex } from '@/lib/useAskCortex';
 interface SearchResult {
   id: string;
   score: number;
+  scoreKind?: 'rerank' | 'cosine';
   from: string;
   subject: string;
   preview: string;
@@ -36,13 +37,14 @@ export default function SearchPalette({ open, onClose }: SearchPaletteProps) {
     ask,
     asking,
     answer: askAnswer,
+    citedEmails,
     error: askError,
     showConfirmDialog,
     confirmSend,
     cancelSend,
     reset: resetAsk,
     compose,
-  } = useAskCortex({ onReview: onClose });
+  } = useAskCortex({ onReview: onClose, onOpenEmail: onClose });
 
   const dispatch = useAppDispatch();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -179,6 +181,43 @@ export default function SearchPalette({ open, onClose }: SearchPaletteProps) {
             <div className="px-4 py-3 text-sm whitespace-pre-wrap">{askAnswer}</div>
           )}
 
+          {/* Emails the answer refers to — clickable, so the user can act on
+              them instead of reading their details back as text. */}
+          {!asking && citedEmails.length > 0 && (
+            <div className="border-b border-border pb-1">
+              <p className="chrome-label text-muted-foreground px-4 pb-1">
+                {citedEmails.length === 1
+                  ? '1 email'
+                  : `${citedEmails.length} emails`}
+              </p>
+              {citedEmails.map((cited) => (
+                <button
+                  key={cited.id}
+                  onClick={() => handleOpen(cited.id)}
+                  className="w-full text-left px-4 py-2 hover:bg-surface-2 transition-colors"
+                >
+                  <div className="flex justify-between items-center gap-2">
+                    <span
+                      className={`text-sm truncate font-email ${cited.unread ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}
+                    >
+                      {cited.subject || '(no subject)'}
+                    </span>
+                    {cited.date && (
+                      <span className="chrome-label text-muted-foreground shrink-0">
+                        {formatMailDate(cited.date)}
+                      </span>
+                    )}
+                  </div>
+                  {cited.from && (
+                    <span className="text-xs text-muted-foreground truncate font-email">
+                      {cited.from}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Search results */}
           {loading && (
             <div className="p-3 space-y-2">
@@ -219,7 +258,14 @@ export default function SearchPalette({ open, onClose }: SearchPaletteProps) {
                   <span className="text-xs text-muted-foreground truncate font-email">
                     {result.from}
                   </span>
-                  <span className="chrome-label text-muted-foreground shrink-0">
+                  <span
+                    className="chrome-label text-muted-foreground shrink-0"
+                    title={
+                      result.scoreKind === 'cosine'
+                        ? 'Similarity score (reranker unavailable)'
+                        : 'Relevance to your query'
+                    }
+                  >
                     {Math.round(result.score * 100)}% match
                   </span>
                 </div>

@@ -90,11 +90,14 @@ export function dispatchAgentActions(actions: AgentAction[]): {
   needsConfirmation: boolean;
   /** True when the agent proposed a batch and the review drawer was opened */
   needsReview: boolean;
+  /** True when the agent opened an email in the detail drawer */
+  opened: boolean;
 } {
   const state = store.getState();
   const results: string[] = [];
   let needsConfirmation = false;
   let needsReview = false;
+  let opened = false;
 
   for (const agentAction of actions) {
     const payload = agentAction.payload as Record<string, unknown> | undefined;
@@ -128,6 +131,8 @@ export function dispatchAgentActions(actions: AgentAction[]): {
           const email = state.mail.emails.find((e) => e.id === id);
           store.dispatch(openEmail(id));
           store.dispatch(markAsRead(id));
+          // The email drawer would otherwise open behind the palette.
+          opened = true;
           results.push(email ? `Opened: ${email.subject}` : 'Opened email');
         }
         break;
@@ -214,5 +219,6 @@ export function dispatchAgentActions(actions: AgentAction[]): {
     summary: results.join('\n'),
     needsConfirmation,
     needsReview,
+    opened,
   };
 }

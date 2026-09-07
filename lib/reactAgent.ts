@@ -45,8 +45,12 @@ If you need to call a tool:
 When you have enough information to respond to the user:
 {
   "thought": "Your final reasoning",
-  "final_answer": "Your response to the user"
+  "final_answer": "Your response to the user",
+  "email_ids": ["id1", "id2"]
 }
+
+"email_ids" is optional. Include it whenever your answer refers to specific
+emails: the app renders each one as a clickable row the user can open.
 
 ## Rules
 - Always include "thought" in every response
@@ -54,6 +58,10 @@ When you have enough information to respond to the user:
 - For SEND actions on a single freshly composed email, use send_email so the user can confirm
 - For ANY change to existing email — archiving, starring, marking read/unread, replying — use propose_actions. Never use reply_to_email when handling more than one email. Always include a one-sentence "reason" per action drawn from that email's content
 - When the Inbox Snapshot lists an email's status (needs_reply, waiting_on, …), trust it — do not re-derive it
+- final_answer is shown as plain text. Never use markdown — no asterisks, no bold, no headings, no bullet or numbered lists. They render literally and look broken
+- Never write an email's ID, or labelled fields like "Subject:", "From:", "Date:" or "Status:", into final_answer. The user cannot use an ID, and the fields are already shown on the clickable row
+- When referring to emails, describe them in one or two plain sentences and list their IDs in "email_ids" instead of enumerating their details. For example: "Three interview emails came in this week, the most recent from XYZ Corp." with all three IDs in email_ids
+- Do not offer to open, read or list an email the user can already click. Offer only actions the rows cannot do, such as replying or archiving
 - Be concise in final_answer — the user sees this text directly
 - If a tool returns an error, try a different approach or explain the limitation`;
 }
@@ -69,6 +77,7 @@ async function callLLM(
   action?: string;
   action_input?: unknown;
   final_answer?: string;
+  email_ids?: string[];
   inputTokens: number;
   outputTokens: number;
 }> {
@@ -164,10 +173,50 @@ export interface InboxSnapshotEmail {
   unread?: boolean;
 }
 
+/**
+ * An email the answer refers to, resolved to enough detail for the UI to
+ * render a clickable row without another round-trip.
+ */
+export interface CitedEmail {
+  id: string;
+  from: string;
+  subject: string;
+  date: string;
+  unread?: boolean;
+}
+
+/**
+ * Remember every email the run has seen, so IDs the model cites in its final
+ * answer can be resolved to sender/subject/date. Sources are the RAG
+ * pre-search, the client's inbox snapshot, and any search tool results.
+ */
+function harvestCitations(seen: Map<string, CitedEmail>, raw: unknown): void {
+  const rows = Array.isArray(raw) ? raw : [raw];
+  for (const row of rows) {
+    if (!row || typeof row !== 'object') continue;
+    const r = row as Record<string, unknown>;
+    const id = typeof r.id === 'string' ? r.id : null;
+    if (!id || seen.has(id)) continue;
+    if (typeof r.subject !== 'string' && typeof r.from !== 'string') continue;
+    seen.set(id, {
+      id,
+      from: typeof r.from === 'string' ? r.from : '',
+      subject: typeof r.subject === 'string' ? r.subject : '',
+      date: typeof r.date === 'string' ? r.date : '',
+      unread: typeof r.unread === 'boolean' ? r.unread : undefined,
+    });
+  }
+}
+
+/** Cap so a broad query can't flood the answer with rows. */
+const MAX_CITATIONS = 8;
+
 export interface AgentResult {
   steps: AgentStep[];
   message: string;
   actions: AgentAction[];
+  /** Emails the answer refers to, rendered by the UI as clickable rows */
+  citedEmails: CitedEmail[];
   /** True when older conversation turns were LLM-summarised to fit the token budget */
   summarised: boolean;
   /** Total tokens consumed by this agent run's context */
@@ -190,11 +239,13 @@ export async function runAgent(
   const agentStart = Date.now();
   const steps: AgentStep[] = [];
   const actions: AgentAction[] = [];
+  const seenEmails = new Map<string, CitedEmail>();
 
   // RAG: retrieve relevant emails before the first LLM call
   let ragResults: string;
   try {
-    const hits = await searchEmails(userMessage, 8);
+    const hits = await searchEmails(context.userKey, userMessage, 8);
+    harvestCitations(seenEmails, hits);
     ragResults =
       hits.length > 0
         ? `Relevant emails (semantic search):\n${JSON.stringify(hits, null, 2)}`
@@ -214,6 +265,7 @@ export async function runAgent(
   // The client's classified inbox, so "everything that needs a reply" resolves
   // without a search. Capped to keep the prompt lean.
   const snapshot = inbox.slice(0, 40);
+  harvestCitations(seenEmails, snapshot);
   const inboxNote = snapshot.length
     ? `\n\n## Inbox Snapshot (${snapshot.length} most recent, with AI status)\n` +
       snapshot
@@ -255,10 +307,18 @@ export async function runAgent(
         latencyMs: Date.now() - agentStart,
         success: true,
       });
+      // Resolve cited IDs against what the run actually saw. An ID we have no
+      // metadata for is dropped rather than rendered as a blank row.
+      const citedEmails = (llmOut.email_ids ?? [])
+        .map((id) => seenEmails.get(id))
+        .filter((e): e is CitedEmail => e !== undefined)
+        .slice(0, MAX_CITATIONS);
+
       return {
         steps,
         message: llmOut.final_answer,
         actions,
+        citedEmails,
         summarised: builtCtx.summarised,
         budgetUsed: builtCtx.budgetUsed,
       };
@@ -274,11 +334,14 @@ export async function runAgent(
       step.observation = observation;
       steps.push(step);
 
-      // Check if tool produced a UI action for the dispatcher
+      // Check if tool produced a UI action for the dispatcher, and remember
+      // any emails it surfaced so the model can cite them by ID later.
       try {
         const parsed = JSON.parse(observation);
         if (parsed?.action) {
           actions.push({ type: parsed.action, payload: parsed });
+        } else {
+          harvestCitations(seenEmails, parsed);
         }
       } catch {
         /* not a JSON action result */
@@ -311,6 +374,7 @@ export async function runAgent(
         message:
           'I ran into trouble structuring my response. Please try again.',
         actions,
+        citedEmails: [],
         summarised: builtCtx.summarised,
         budgetUsed: builtCtx.budgetUsed,
       };
@@ -329,6 +393,7 @@ export async function runAgent(
     message:
       "I've completed my analysis. Here's what I found based on your request.",
     actions,
+    citedEmails: [],
     summarised: builtCtx.summarised,
     budgetUsed: builtCtx.budgetUsed,
   };

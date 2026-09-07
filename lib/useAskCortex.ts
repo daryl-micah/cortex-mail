@@ -7,26 +7,34 @@ import {
   dispatchAssistantAction,
 } from '@/lib/assistantDispatcher';
 import type { AgentAction } from '@/lib/schemas';
+import type { CitedEmail } from '@/lib/reactAgent';
 
 /**
  * Single-shot "ask Cortex" round-trip shared by the search palette and the
  * thread drawer. Sends one message through the ReAct agent, dispatches any
  * resulting UI actions, and surfaces the send-confirmation flow.
  */
-export function useAskCortex(options?: { onReview?: () => void }) {
+export function useAskCortex(options?: {
+  onReview?: () => void;
+  /** Called when the agent opened an email, so the caller can step aside. */
+  onOpenEmail?: () => void;
+}) {
   const detailEmailId = useAppSelector((state) => state.ui.detailEmailId);
   const compose = useAppSelector((state) => state.mail.compose);
   const emails = useAppSelector((state) => state.mail.emails);
   const onReview = options?.onReview;
+  const onOpenEmail = options?.onOpenEmail;
 
   const [asking, setAsking] = useState(false);
   const [answer, setAnswer] = useState<string | null>(null);
+  const [citedEmails, setCitedEmails] = useState<CitedEmail[]>([]);
   const [error, setError] = useState('');
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const reset = useCallback(() => {
     setAsking(false);
     setAnswer(null);
+    setCitedEmails([]);
     setError('');
     setShowConfirmDialog(false);
   }, []);
@@ -36,6 +44,7 @@ export function useAskCortex(options?: { onReview?: () => void }) {
       const q = message.trim();
       if (!q || asking) return;
       setAnswer(null);
+      setCitedEmails([]);
       setError('');
       setAsking(true);
 
@@ -66,20 +75,22 @@ export function useAskCortex(options?: { onReview?: () => void }) {
           return;
         }
 
-        const { needsConfirmation, needsReview } = dispatchAgentActions(
+        const { needsConfirmation, needsReview, opened } = dispatchAgentActions(
           (data.actions ?? []) as AgentAction[]
         );
         if (needsConfirmation) setShowConfirmDialog(true);
 
         setAnswer(data.message ?? 'Done.');
+        setCitedEmails((data.citedEmails ?? []) as CitedEmail[]);
         if (needsReview) onReview?.();
+        if (opened) onOpenEmail?.();
       } catch {
         setError('Sorry, something went wrong. Please try again.');
       } finally {
         setAsking(false);
       }
     },
-    [asking, detailEmailId, emails, onReview]
+    [asking, detailEmailId, emails, onReview, onOpenEmail]
   );
 
   const confirmSend = useCallback(async () => {
@@ -114,6 +125,7 @@ export function useAskCortex(options?: { onReview?: () => void }) {
     ask,
     asking,
     answer,
+    citedEmails,
     error,
     showConfirmDialog,
     confirmSend,
