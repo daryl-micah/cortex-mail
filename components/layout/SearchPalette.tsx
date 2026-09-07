@@ -2,17 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Search, Sparkles, X } from 'lucide-react';
-import { useAppDispatch, useAppSelector } from '@/store';
+import { useAppDispatch } from '@/store';
 import { openEmail } from '@/store/uiSlice';
 import { markAsRead } from '@/store/mailSlice';
 import { formatMailDate } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmSendDialog from '@/components/ui/ConfirmSendDialog';
-import {
-  dispatchAgentActions,
-  dispatchAssistantAction,
-} from '@/lib/assistantDispatcher';
-import type { AgentAction } from '@/lib/schemas';
+import { useAskCortex } from '@/lib/useAskCortex';
 
 interface SearchResult {
   id: string;
@@ -36,14 +32,19 @@ export default function SearchPalette({ open, onClose }: SearchPaletteProps) {
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState('');
 
-  const [asking, setAsking] = useState(false);
-  const [askAnswer, setAskAnswer] = useState<string | null>(null);
-  const [askError, setAskError] = useState('');
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const {
+    ask,
+    asking,
+    answer: askAnswer,
+    error: askError,
+    showConfirmDialog,
+    confirmSend,
+    cancelSend,
+    reset: resetAsk,
+    compose,
+  } = useAskCortex();
 
   const dispatch = useAppDispatch();
-  const detailEmailId = useAppSelector((state) => state.ui.detailEmailId);
-  const compose = useAppSelector((state) => state.mail.compose);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -52,13 +53,10 @@ export default function SearchPalette({ open, onClose }: SearchPaletteProps) {
     setResults([]);
     setSearched(false);
     setError('');
-    setAsking(false);
-    setAskAnswer(null);
-    setAskError('');
-    setShowConfirmDialog(false);
+    resetAsk();
     const t = setTimeout(() => inputRef.current?.focus(), 20);
     return () => clearTimeout(t);
-  }, [open]);
+  }, [open, resetAsk]);
 
   useEffect(() => {
     if (!open) return;
@@ -77,8 +75,7 @@ export default function SearchPalette({ open, onClose }: SearchPaletteProps) {
   const runSearch = async () => {
     const q = query.trim();
     if (!q || loading) return;
-    setAskAnswer(null);
-    setAskError('');
+    resetAsk();
     setLoading(true);
     setError('');
     setSearched(true);
@@ -105,45 +102,13 @@ export default function SearchPalette({ open, onClose }: SearchPaletteProps) {
     }
   };
 
-  const handleAskCortex = async () => {
+  const handleAskCortex = () => {
     const q = query.trim();
     if (!q || asking) return;
     setResults([]);
     setSearched(false);
     setError('');
-    setAskAnswer(null);
-    setAskError('');
-    setAsking(true);
-
-    try {
-      const res = await fetch('/api/assistant', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: q,
-          conversationHistory: [],
-          context: { selectedEmailId: detailEmailId },
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.error) {
-        setAskError(data.error);
-        return;
-      }
-
-      const { needsConfirmation } = dispatchAgentActions(
-        (data.actions ?? []) as AgentAction[]
-      );
-      if (needsConfirmation) setShowConfirmDialog(true);
-
-      setAskAnswer(data.message ?? 'Done.');
-    } catch {
-      setAskError('Sorry, something went wrong. Please try again.');
-    } finally {
-      setAsking(false);
-    }
+    ask(q);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -280,33 +245,8 @@ export default function SearchPalette({ open, onClose }: SearchPaletteProps) {
             to={compose.to}
             subject={compose.subject}
             body={compose.body}
-            onConfirm={async () => {
-              setShowConfirmDialog(false);
-              try {
-                const response = await fetch('/api/emails/send', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    to: compose.to,
-                    subject: compose.subject,
-                    body: compose.body,
-                  }),
-                });
-
-                if (response.ok) {
-                  setAskAnswer('✓ Email sent successfully!');
-                  dispatchAssistantAction({ type: 'SEND_EMAIL_CONFIRMED' });
-                } else {
-                  setAskAnswer('✗ Failed to send email');
-                }
-              } catch {
-                setAskAnswer('✗ Error sending email');
-              }
-            }}
-            onCancel={() => {
-              setShowConfirmDialog(false);
-              setAskAnswer('Email sending cancelled.');
-            }}
+            onConfirm={confirmSend}
+            onCancel={cancelSend}
           />
         </div>
       )}

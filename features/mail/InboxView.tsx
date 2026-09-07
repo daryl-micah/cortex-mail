@@ -7,7 +7,7 @@ import { X } from 'lucide-react';
 import { useMemo, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { AIStatus } from '@/types/mail';
+import type { AIStatus, EmailCategory } from '@/types/mail';
 import {
   setFilters,
   appendEmails,
@@ -18,12 +18,14 @@ import {
 interface InboxViewProps {
   statusFilter?: AIStatus;
   starredOnly?: boolean;
+  categoryFilter?: EmailCategory;
   title?: string;
 }
 
 export default function InboxView({
   statusFilter,
   starredOnly,
+  categoryFilter,
   title = 'Inbox',
 }: InboxViewProps) {
   const emails = useAppSelector((state) => state.mail.emails);
@@ -98,6 +100,10 @@ export default function InboxView({
       result = result.filter((email) => email.starred);
     }
 
+    if (categoryFilter) {
+      result = result.filter((email) => email.category === categoryFilter);
+    }
+
     if (filters.unread !== undefined) {
       result = result.filter((email) => email.unread === filters.unread);
     }
@@ -138,7 +144,7 @@ export default function InboxView({
     }
 
     return result;
-  }, [emails, filters, statusFilter, starredOnly]);
+  }, [emails, filters, statusFilter, starredOnly, categoryFilter]);
 
   const unreadActive = filters.unread === true;
 

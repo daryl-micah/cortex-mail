@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import type { EmailCategory } from '@/types/mail';
 
 export type ViewMode =
   | 'TODAY'
@@ -7,10 +8,13 @@ export type ViewMode =
   | 'NEEDS_REPLY'
   | 'WAITING_ON'
   | 'FOLLOW_UP'
-  | 'STARRED';
+  | 'STARRED'
+  | 'CATEGORY';
 
 export interface UIState {
   view: ViewMode;
+  /** Gmail category shown when view === 'CATEGORY' */
+  activeCategory: EmailCategory | null;
   detailEmailId: string | null;
   composeOpen: boolean;
   searchQuery: string;
@@ -18,6 +22,7 @@ export interface UIState {
 
 const initialState: UIState = {
   view: 'TODAY',
+  activeCategory: null,
   detailEmailId: null,
   composeOpen: false,
   searchQuery: '',
@@ -29,6 +34,12 @@ const uiSlice = createSlice({
   reducers: {
     setView(state, action: PayloadAction<ViewMode>) {
       state.view = action.payload;
+      if (action.payload !== 'CATEGORY') state.activeCategory = null;
+    },
+
+    setCategoryView(state, action: PayloadAction<EmailCategory>) {
+      state.view = 'CATEGORY';
+      state.activeCategory = action.payload;
     },
 
     openEmail: (state, action: PayloadAction<string>) => {
@@ -51,6 +62,7 @@ const uiSlice = createSlice({
 
 export const {
   setView,
+  setCategoryView,
   openEmail,
   closeEmail,
   openCompose,

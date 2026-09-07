@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store';
 import NavButton from './NavButton';
-import { openCompose, setView, ViewMode } from '@/store/uiSlice';
+import { openCompose, setCategoryView, setView, ViewMode } from '@/store/uiSlice';
 import {
   Sparkles,
   Inbox,
@@ -40,6 +40,7 @@ export default function Sidebar({ onClose, onOpenSearch }: SidebarProps) {
   const dispatch = useAppDispatch();
   const { data: session } = useSession();
   const view = useAppSelector((state) => state.ui.view);
+  const activeCategory = useAppSelector((state) => state.ui.activeCategory);
   const emails = useAppSelector((state) => state.mail.emails);
   const [avatarLoaded, setAvatarLoaded] = useState(false);
 
@@ -169,7 +170,11 @@ export default function Sidebar({ onClose, onOpenSearch }: SidebarProps) {
               label={label}
               icon={icon}
               count={counts.category[category]}
-              onClick={() => handleNavigation('INBOX')}
+              active={view === 'CATEGORY' && activeCategory === category}
+              onClick={() => {
+                dispatch(setCategoryView(category));
+                onClose?.();
+              }}
             />
           ))}
         </div>

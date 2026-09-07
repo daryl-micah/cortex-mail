@@ -10,9 +10,21 @@ import ComposeView from '@/features/mail/ComposeView';
 import Drawer from '@/components/ui/Drawer';
 import { closeEmail, closeCompose } from '@/store/uiSlice';
 import { useEmailSync } from '@/lib/useEmailSync';
+import type { EmailCategory } from '@/types/mail';
+
+const CATEGORY_TITLES: Record<EmailCategory, string> = {
+  primary: 'Primary',
+  promotions: 'Newsletters',
+  updates: 'Updates',
+  social: 'Social',
+  forums: 'Forums',
+};
 
 export default function MainView() {
   const view = useAppSelector((state: RootState) => state.ui.view);
+  const activeCategory = useAppSelector(
+    (state: RootState) => state.ui.activeCategory
+  );
   const detailEmailId = useAppSelector(
     (state: RootState) => state.ui.detailEmailId
   );
@@ -40,6 +52,15 @@ export default function MainView() {
         return <InboxView statusFilter="follow_up" title="Follow Up" />;
       case 'STARRED':
         return <InboxView starredOnly title="Starred" />;
+      case 'CATEGORY':
+        return activeCategory ? (
+          <InboxView
+            categoryFilter={activeCategory}
+            title={CATEGORY_TITLES[activeCategory]}
+          />
+        ) : (
+          <InboxView />
+        );
       default:
         return <TodayView />;
     }

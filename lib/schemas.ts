@@ -111,3 +111,15 @@ export const ClassificationResponseSchema = z.object({
 });
 
 export type EmailClassification = z.infer<typeof EmailClassificationSchema>;
+
+// ---------------------------------------------------------------------------
+// Thread insight — one opened email, full body
+// ---------------------------------------------------------------------------
+export const InsightSchema = z.object({
+  summary: z.string().min(1),
+  action: z.string().optional(),
+  deadline: z.string().optional(),
+  suggestedReply: z.string().optional(),
+});
+
+export type Insight = z.infer<typeof InsightSchema>;

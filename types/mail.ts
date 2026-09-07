@@ -20,6 +20,14 @@ export interface EmailAI {
   summary?: string;
 }
 
+/** Thread-level AI reading of a single opened email (Phase 3). */
+export interface EmailInsight {
+  summary: string;
+  action?: string;
+  deadline?: string; // ISO
+  suggestedReply?: string;
+}
+
 export interface Email {
   id: string;
 
@@ -41,6 +49,7 @@ export interface Email {
   attachments?: EmailAttachment[];
 
   ai?: EmailAI;
+  insight?: EmailInsight;
 }
 
 export interface EmailAttachment {
