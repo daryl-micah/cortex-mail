@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { RootState } from '@/store';
-import { closeEmail, openCompose } from '@/store/uiSlice';
+import { closeEmail, openCompose, openEmail } from '@/store/uiSlice';
 import {
   setCompose,
   setInsight,
@@ -63,6 +63,7 @@ export default function EmailDetailView() {
     ask,
     asking,
     answer,
+    citedEmails,
     error: askError,
     showConfirmDialog,
     confirmSend,
@@ -440,6 +441,38 @@ export default function EmailDetailView() {
             <div className="text-sm whitespace-pre-wrap font-email bevel rounded-md bg-surface-2 p-3">
               {answer}
             </div>
+          )}
+          {/* Emails the answer refers to. Clicking one swaps this drawer over
+              to that thread. */}
+          {!asking && citedEmails.length > 0 && (
+            <ul className="mt-2 space-y-1">
+              {citedEmails
+                .filter((cited) => cited.id !== detailEmailId)
+                .map((cited) => (
+                  <li key={cited.id}>
+                    <button
+                      onClick={() => dispatch(openEmail(cited.id))}
+                      className="w-full text-left px-3 py-2 rounded-md bevel bg-surface-2 hover:bg-white transition-colors"
+                    >
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="text-sm truncate font-email text-foreground">
+                          {cited.subject || '(no subject)'}
+                        </span>
+                        {cited.date && (
+                          <span className="chrome-label text-muted-foreground shrink-0">
+                            {formatMailDate(cited.date)}
+                          </span>
+                        )}
+                      </div>
+                      {cited.from && (
+                        <span className="text-xs text-muted-foreground truncate font-email">
+                          {cited.from}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+            </ul>
           )}
         </section>
       </div>

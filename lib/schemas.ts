@@ -8,6 +8,12 @@ export const AgentThoughtSchema = z.object({
   action: z.string().optional(),
   action_input: z.record(z.string(), z.unknown()).optional(),
   final_answer: z.string().optional(),
+  /**
+   * IDs of emails the final answer refers to. The UI renders these as
+   * clickable rows, which is why the answer text itself never needs to
+   * spell out subjects, senders or IDs.
+   */
+  email_ids: z.array(z.string()).optional(),
 });
 
 export type AgentThought = z.infer<typeof AgentThoughtSchema>;
