@@ -123,3 +123,40 @@ export const InsightSchema = z.object({
 });
 
 export type Insight = z.infer<typeof InsightSchema>;
+
+// ---------------------------------------------------------------------------
+// Proposed actions — the agent's batch of consequential changes, reviewed by
+// the user before anything runs
+// ---------------------------------------------------------------------------
+const reasonField = z.string().min(1).describe('One sentence explaining why, from the email content');
+
+export const ProposedActionSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('reply'),
+    emailId: z.string(),
+    to: z.string(),
+    subject: z.string(),
+    body: z.string(),
+    reason: reasonField,
+  }),
+  z.object({ kind: z.literal('archive'), emailId: z.string(), reason: reasonField }),
+  z.object({
+    kind: z.literal('star'),
+    emailId: z.string(),
+    starred: z.boolean().default(true),
+    reason: reasonField,
+  }),
+  z.object({
+    kind: z.literal('read'),
+    emailId: z.string(),
+    unread: z.boolean().default(false),
+    reason: reasonField,
+  }),
+]);
+
+export const ProposeActionsInputSchema = z.object({
+  summary: z.string().describe('One sentence describing the whole batch'),
+  actions: z.array(ProposedActionSchema).min(1),
+});
+
+export type ProposedActionWithReason = z.infer<typeof ProposedActionSchema>;

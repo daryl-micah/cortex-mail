@@ -2,10 +2,10 @@
 
 import { cn, formatMailDate } from '@/lib/utils';
 import { openEmail } from '@/store/uiSlice';
-import { markAsRead, toggleStar } from '@/store/mailSlice';
+import { markAsRead, toggleStar, removeEmails } from '@/store/mailSlice';
 import { Email, EmailCategory } from '@/types/mail';
 import { useAppDispatch, useAppSelector } from '@/store';
-import { Star, Paperclip } from 'lucide-react';
+import { Star, Paperclip, Archive } from 'lucide-react';
 import { useState } from 'react';
 import AIStatusBadge from './AIStatusBadge';
 
@@ -61,6 +61,16 @@ export default function EmailRow({ email }: Props) {
     }
   };
 
+  const handleArchive = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const res = await fetch('/api/emails/modify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: [email.id], op: 'archive' }),
+    }).catch(() => null);
+    if (res?.ok) dispatch(removeEmails([email.id]));
+  };
+
   return (
     <div
       onClick={handleOpen}
@@ -106,6 +116,13 @@ export default function EmailRow({ email }: Props) {
             {email.attachments && email.attachments.length > 0 && (
               <Paperclip className="h-3 w-3 text-muted-foreground" />
             )}
+            <button
+              onClick={handleArchive}
+              className="opacity-0 group-hover:opacity-100 transition-opacity"
+              title="Archive"
+            >
+              <Archive className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+            </button>
             <button
               onClick={handleToggleStar}
               className={cn(

@@ -42,7 +42,7 @@ export default function SearchPalette({ open, onClose }: SearchPaletteProps) {
     cancelSend,
     reset: resetAsk,
     compose,
-  } = useAskCortex();
+  } = useAskCortex({ onReview: onClose });
 
   const dispatch = useAppDispatch();
   const inputRef = useRef<HTMLInputElement>(null);

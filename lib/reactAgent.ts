@@ -12,7 +12,7 @@ import { logLLMCall, logAgentRun } from './aiLogger';
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const MODEL = 'openai/gpt-oss-120b';
-const MAX_ITERATIONS = 5;
+const MAX_ITERATIONS = 8;
 const MAX_RETRIES = 2;
 
 // ---------------------------------------------------------------------------
@@ -51,7 +51,9 @@ When you have enough information to respond to the user:
 ## Rules
 - Always include "thought" in every response
 - Match email IDs exactly from tool results — never invent IDs
-- For SEND actions, always use the send_email tool so the user can confirm
+- For SEND actions on a single freshly composed email, use send_email so the user can confirm
+- For ANY change to existing email — archiving, starring, marking read/unread, replying — use propose_actions. Never use reply_to_email when handling more than one email. Always include a one-sentence "reason" per action drawn from that email's content
+- When the Inbox Snapshot lists an email's status (needs_reply, waiting_on, …), trust it — do not re-derive it
 - Be concise in final_answer — the user sees this text directly
 - If a tool returns an error, try a different approach or explain the limitation`;
 }
@@ -152,6 +154,16 @@ async function callLLM(
 // ---------------------------------------------------------------------------
 // Public interface
 // ---------------------------------------------------------------------------
+/** Lightweight view of the client's already-classified inbox, sent with each request */
+export interface InboxSnapshotEmail {
+  id: string;
+  from: string;
+  subject: string;
+  date: string;
+  status?: string;
+  unread?: boolean;
+}
+
 export interface AgentResult {
   steps: AgentStep[];
   message: string;
@@ -172,7 +184,8 @@ export interface AgentResult {
 export async function runAgent(
   userMessage: string,
   history: ContextMessage[],
-  context: ToolContext
+  context: ToolContext,
+  inbox: InboxSnapshotEmail[] = []
 ): Promise<AgentResult> {
   const agentStart = Date.now();
   const steps: AgentStep[] = [];
@@ -198,11 +211,24 @@ export async function runAgent(
     ? `\n\n## Currently Open Email\nID: ${context.currentEmailId}\nWhen the user says "this email", "this thread", or "the current email", use this ID directly with get_email_body, summarize_thread, or reply_to_email instead of searching.`
     : '';
 
+  // The client's classified inbox, so "everything that needs a reply" resolves
+  // without a search. Capped to keep the prompt lean.
+  const snapshot = inbox.slice(0, 40);
+  const inboxNote = snapshot.length
+    ? `\n\n## Inbox Snapshot (${snapshot.length} most recent, with AI status)\n` +
+      snapshot
+        .map(
+          (e) =>
+            `- id: ${e.id} | from: ${e.from} | subject: ${e.subject} | ${e.date.slice(0, 10)}${e.status ? ` | status: ${e.status}` : ''}${e.unread ? ' | unread' : ''}`
+        )
+        .join('\n')
+    : '';
+
   // Build initial message array
   let messages: Groq.Chat.ChatCompletionMessageParam[] = [
     {
       role: 'system',
-      content: `${builtCtx.system}\n\n## Email Context\n${builtCtx.ragContext}${openEmailNote}`,
+      content: `${builtCtx.system}\n\n## Email Context\n${builtCtx.ragContext}${openEmailNote}${inboxNote}`,
     },
     ...builtCtx.conversation.map((m) => ({
       role: m.role as 'user' | 'assistant',

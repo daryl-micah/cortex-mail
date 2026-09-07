@@ -6,8 +6,10 @@ import {
   sendEmail,
   markAsRead,
 } from '@/store/mailSlice';
+import { proposeActions } from '@/store/actionsSlice';
 import type { AssistantAction } from '@/types/assistant';
-import type { AgentAction } from '@/lib/schemas';
+import type { AgentAction, ProposedActionWithReason } from '@/lib/schemas';
+import type { ActionItem } from '@/types/actions';
 
 /**
  * Central dispatcher that translates AI assistant actions into Redux state updates.
@@ -86,10 +88,13 @@ export function dispatchAssistantAction(action: AssistantAction): string {
 export function dispatchAgentActions(actions: AgentAction[]): {
   summary: string;
   needsConfirmation: boolean;
+  /** True when the agent proposed a batch and the review drawer was opened */
+  needsReview: boolean;
 } {
   const state = store.getState();
   const results: string[] = [];
   let needsConfirmation = false;
+  let needsReview = false;
 
   for (const agentAction of actions) {
     const payload = agentAction.payload as Record<string, unknown> | undefined;
@@ -168,6 +173,35 @@ export function dispatchAgentActions(actions: AgentAction[]): {
         break;
       }
 
+      case 'PROPOSE_ACTIONS': {
+        const proposed = (payload?.actions ?? []) as ProposedActionWithReason[];
+        const known = new Set(state.mail.emails.map((e) => e.id));
+        const items: ActionItem[] = proposed
+          .filter((a) => known.has(a.emailId))
+          .map((a, i) => {
+            const { reason, ...action } = a;
+            return {
+              id: `${Date.now()}-${i}`,
+              action,
+              reason,
+              status: 'pending',
+            };
+          });
+        if (items.length > 0) {
+          store.dispatch(
+            proposeActions({
+              summary: String(payload?.summary ?? ''),
+              items,
+            })
+          );
+          needsReview = true;
+          results.push(`${items.length} action${items.length === 1 ? '' : 's'} ready to review`);
+        } else {
+          results.push('No valid actions to review');
+        }
+        break;
+      }
+
       // Legacy action types (kept for backward compat)
       case 'OPEN_COMPOSE':
         store.dispatch(openCompose());
@@ -179,5 +213,6 @@ export function dispatchAgentActions(actions: AgentAction[]): {
   return {
     summary: results.join('\n'),
     needsConfirmation,
+    needsReview,
   };
 }

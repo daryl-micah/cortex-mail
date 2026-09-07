@@ -47,6 +47,9 @@ export interface Email {
   starred: boolean;
   category: EmailCategory;
   attachments?: EmailAttachment[];
+  threadId?: string;
+  /** RFC 2822 Message-ID header — used for In-Reply-To when replying */
+  messageId?: string;
 
   ai?: EmailAI;
   insight?: EmailInsight;

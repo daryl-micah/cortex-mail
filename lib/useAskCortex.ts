@@ -13,9 +13,11 @@ import type { AgentAction } from '@/lib/schemas';
  * thread drawer. Sends one message through the ReAct agent, dispatches any
  * resulting UI actions, and surfaces the send-confirmation flow.
  */
-export function useAskCortex() {
+export function useAskCortex(options?: { onReview?: () => void }) {
   const detailEmailId = useAppSelector((state) => state.ui.detailEmailId);
   const compose = useAppSelector((state) => state.mail.compose);
+  const emails = useAppSelector((state) => state.mail.emails);
+  const onReview = options?.onReview;
 
   const [asking, setAsking] = useState(false);
   const [answer, setAnswer] = useState<string | null>(null);
@@ -44,7 +46,17 @@ export function useAskCortex() {
           body: JSON.stringify({
             message: q,
             conversationHistory: [],
-            context: { selectedEmailId: detailEmailId },
+            context: {
+              selectedEmailId: detailEmailId,
+              inbox: emails.slice(0, 40).map((e) => ({
+                id: e.id,
+                from: e.fromName,
+                subject: e.subject,
+                date: e.date,
+                status: e.ai?.status,
+                unread: e.unread,
+              })),
+            },
           }),
         });
 
@@ -54,19 +66,20 @@ export function useAskCortex() {
           return;
         }
 
-        const { needsConfirmation } = dispatchAgentActions(
+        const { needsConfirmation, needsReview } = dispatchAgentActions(
           (data.actions ?? []) as AgentAction[]
         );
         if (needsConfirmation) setShowConfirmDialog(true);
 
         setAnswer(data.message ?? 'Done.');
+        if (needsReview) onReview?.();
       } catch {
         setError('Sorry, something went wrong. Please try again.');
       } finally {
         setAsking(false);
       }
     },
-    [asking, detailEmailId]
+    [asking, detailEmailId, emails, onReview]
   );
 
   const confirmSend = useCallback(async () => {

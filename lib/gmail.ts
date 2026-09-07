@@ -138,6 +138,7 @@ export async function fetchEmails(
         starred: msg.data.labelIds?.includes('STARRED') || false,
         category: categoryFromLabels(msg.data.labelIds || undefined),
         threadId: msg.data.threadId,
+        messageId: getHeader('Message-ID') || undefined,
         attachments: attachments.length > 0 ? attachments : undefined,
       };
     });
@@ -160,14 +161,20 @@ export async function sendEmail(
   session: Session,
   to: string,
   subject: string,
-  body: string
+  body: string,
+  threading?: { threadId?: string; inReplyTo?: string }
 ) {
   const gmail = getGmailClient(session);
 
   try {
+    const headers = [`To: ${to}`, `Subject: ${subject}`];
+    // Reply headers so Gmail threads the message under the original
+    if (threading?.inReplyTo) {
+      headers.push(`In-Reply-To: ${threading.inReplyTo}`);
+      headers.push(`References: ${threading.inReplyTo}`);
+    }
     const email = [
-      `To: ${to}`,
-      `Subject: ${subject}`,
+      ...headers,
       'Content-Type: text/plain; charset=utf-8',
       '',
       body,
@@ -183,6 +190,7 @@ export async function sendEmail(
       userId: 'me',
       requestBody: {
         raw: encodedEmail,
+        threadId: threading?.threadId,
       },
     });
 
@@ -234,6 +242,51 @@ export async function setStarred(
   } catch (error) {
     console.error('Error setting starred state:', error);
     throw new Error('Failed to update starred state');
+  }
+}
+
+export type ModifyOp =
+  | 'archive'
+  | 'unarchive'
+  | 'read'
+  | 'unread'
+  | 'star'
+  | 'unstar';
+
+const MODIFY_LABELS: Record<
+  ModifyOp,
+  { addLabelIds?: string[]; removeLabelIds?: string[] }
+> = {
+  archive: { removeLabelIds: ['INBOX'] },
+  unarchive: { addLabelIds: ['INBOX'] },
+  read: { removeLabelIds: ['UNREAD'] },
+  unread: { addLabelIds: ['UNREAD'] },
+  star: { addLabelIds: ['STARRED'] },
+  unstar: { removeLabelIds: ['STARRED'] },
+};
+
+/**
+ * Apply one label operation to many messages in a single batchModify call.
+ * Gmail caps a batch at 1000 ids.
+ */
+export async function modifyMessages(
+  session: Session,
+  ids: string[],
+  op: ModifyOp
+) {
+  if (ids.length === 0) return;
+  const gmail = getGmailClient(session);
+
+  try {
+    for (let i = 0; i < ids.length; i += 1000) {
+      await gmail.users.messages.batchModify({
+        userId: 'me',
+        requestBody: { ids: ids.slice(i, i + 1000), ...MODIFY_LABELS[op] },
+      });
+    }
+  } catch (error) {
+    console.error(`Error applying ${op}:`, error);
+    throw new Error(`Failed to ${op} messages`);
   }
 }
 

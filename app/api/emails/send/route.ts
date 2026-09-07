@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { to, subject, body } = await request.json();
+    const { to, subject, body, threadId, inReplyTo } = await request.json();
 
     if (!to || !subject) {
       return NextResponse.json(
@@ -19,7 +19,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await sendEmail(session, to, subject, body || '');
+    const result = await sendEmail(session, to, subject, body || '', {
+      threadId,
+      inReplyTo,
+    });
 
     return NextResponse.json({ success: true, messageId: result.id });
   } catch (error) {

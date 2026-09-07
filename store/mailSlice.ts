@@ -81,6 +81,22 @@ const mailSlice = createSlice({
         email.unread = false;
       }
     },
+    setUnread(state, action: PayloadAction<{ id: string; unread: boolean }>) {
+      const email = state.emails.find((e) => e.id === action.payload.id);
+      if (email) email.unread = action.payload.unread;
+    },
+    removeEmails(state, action: PayloadAction<string[]>) {
+      const ids = new Set(action.payload);
+      state.emails = state.emails.filter((e) => !ids.has(e.id));
+    },
+    /** Put archived emails back (undo). They re-sort on the next poll. */
+    restoreEmails(state, action: PayloadAction<Email[]>) {
+      const existing = new Set(state.emails.map((e) => e.id));
+      const fresh = action.payload.filter((e) => !existing.has(e.id));
+      state.emails = [...state.emails, ...fresh].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+    },
     toggleStar(state, action: PayloadAction<{ id: string; starred: boolean }>) {
       const email =
         state.emails.find((e) => e.id === action.payload.id) ||
@@ -131,6 +147,9 @@ export const {
   setLoadingMore,
   setError,
   markAsRead,
+  setUnread,
+  removeEmails,
+  restoreEmails,
   toggleStar,
   setClassifications,
   setInsight,

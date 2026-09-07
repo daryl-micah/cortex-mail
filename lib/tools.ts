@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { searchEmails } from './embeddings';
 import { logToolCall } from './aiLogger';
+import { ProposeActionsInputSchema } from './schemas';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -196,6 +197,16 @@ export const tools: Tool[] = [
   },
 
   {
+    name: 'propose_actions',
+    description:
+      'Propose a batch of changes for the user to review before anything runs: archive, star/unstar, mark read/unread, or send a reply. Use this for ANY change to email state, and always when handling more than one email. The user approves, edits, or rejects each item in a review screen — never assume they ran.',
+    parameters: ProposeActionsInputSchema,
+    execute: async (params) => {
+      return JSON.stringify({ action: 'PROPOSE_ACTIONS', ...(params as object) });
+    },
+  },
+
+  {
     name: 'filter_emails',
     description:
       'Filter the inbox by unread status, sender, or date range. Use when the user asks to view a subset of emails.',
@@ -224,13 +235,18 @@ export function getToolDescriptions(): string {
         t.parameters instanceof z.ZodObject ? t.parameters.shape : {};
       const params = Object.entries(shape)
         .map(([key, schema]) => {
-          const desc = (schema as any)._def?.description ?? '';
+          const s = schema as { description?: string; _def?: { description?: string } };
+          const desc = s.description ?? s._def?.description ?? '';
           const optional =
             schema instanceof z.ZodOptional ? ' (optional)' : ' (required)';
           return `  - ${key}${optional}: ${desc}`;
         })
         .join('\n');
-      return `### ${t.name}\n${t.description}${params ? '\nParameters:\n' + params : ''}`;
+      const extra =
+        t.name === 'propose_actions'
+          ? `\nEach action is one of:\n  { kind: "reply", emailId, to, subject, body, reason }\n  { kind: "archive", emailId, reason }\n  { kind: "star", emailId, starred: true|false, reason }\n  { kind: "read", emailId, unread: true|false, reason }\n"reason" is one sentence from the email's content explaining why.`
+          : '';
+      return `### ${t.name}\n${t.description}${params ? '\nParameters:\n' + params : ''}${extra}`;
     })
     .join('\n\n');
 }
