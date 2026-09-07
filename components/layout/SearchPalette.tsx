@@ -13,6 +13,7 @@ import { useAskCortex } from '@/lib/useAskCortex';
 interface SearchResult {
   id: string;
   score: number;
+  scoreKind?: 'rerank' | 'cosine';
   from: string;
   subject: string;
   preview: string;
@@ -219,7 +220,14 @@ export default function SearchPalette({ open, onClose }: SearchPaletteProps) {
                   <span className="text-xs text-muted-foreground truncate font-email">
                     {result.from}
                   </span>
-                  <span className="chrome-label text-muted-foreground shrink-0">
+                  <span
+                    className="chrome-label text-muted-foreground shrink-0"
+                    title={
+                      result.scoreKind === 'cosine'
+                        ? 'Similarity score (reranker unavailable)'
+                        : 'Relevance to your query'
+                    }
+                  >
                     {Math.round(result.score * 100)}% match
                   </span>
                 </div>

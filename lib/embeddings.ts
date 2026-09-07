@@ -51,15 +51,75 @@ function cacheFor(ns: string): Map<string, boolean> {
   return m;
 }
 
+// ---------------------------------------------------------------------------
+// Retrieval tuning
+// ---------------------------------------------------------------------------
+
+/** How many candidates the dense stage pulls before reranking. */
+const CANDIDATE_K = 30;
+
+/** Cross-encoder used to reorder the dense candidates. */
+const RERANK_MODEL = process.env.PINECONE_RERANK_MODEL || 'bge-reranker-v2-m3';
+
+/**
+ * How much recency is allowed to matter. A brand-new email keeps 100% of its
+ * relevance score, an infinitely old one keeps (1 - RECENCY_WEIGHT). Small on
+ * purpose: this breaks ties between comparably relevant mail, it does not
+ * out-rank a better match.
+ */
+const RECENCY_WEIGHT = 0.15;
+
+/** Age at which the recency term has decayed to ~37%. */
+const RECENCY_DECAY_DAYS = 90;
+
+/** Characters of body kept in metadata for the reranker to read. */
+const SNIPPET_CHARS = 900;
+
 export interface EmailForEmbedding {
   id: string;
+  /** Raw From header, e.g. `"Sarah Chen" <sarah@acme.com>` */
   from: string;
+  /** Display name only, e.g. `Sarah Chen` */
+  fromName?: string;
+  /** Address only, e.g. `sarah@acme.com` */
+  fromEmail?: string;
   subject: string;
   preview: string;
   date: string;
   unread: boolean;
   /** First ~500 characters of the plain-text body */
   bodyText?: string;
+}
+
+/**
+ * The text that actually gets embedded.
+ *
+ * Sender and date are included deliberately: they are the two things users
+ * most often search by ("the invoice from Sarah", "that thing from last
+ * March") and neither is recoverable from subject/body alone. The date is
+ * spelled out in words because digits embed poorly.
+ */
+function buildIndexText(e: EmailForEmbedding): string {
+  const name = e.fromName || e.from;
+  const parsed = new Date(e.date);
+  const when = Number.isNaN(parsed.getTime())
+    ? ''
+    : parsed.toLocaleDateString('en-US', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
+
+  return [
+    `From: ${name}${e.fromEmail && e.fromEmail !== name ? ` <${e.fromEmail}>` : ''}`,
+    when ? `Date: ${when}` : '',
+    `Subject: ${e.subject}`,
+    e.preview,
+    e.bodyText ?? '',
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 /**
@@ -83,7 +143,7 @@ export async function embedTexts(
 }
 
 /**
- * Index emails for one user. Embeds subject + preview + bodyText.
+ * Index emails for one user. Embeds sender, date, subject, preview and body.
  * Skips ids already indexed by this process; if only `unread` changed,
  * updates metadata in place (no embedding call). Batches of 100.
  *
@@ -109,20 +169,21 @@ export async function upsertEmails(
   }
 
   if (fresh.length > 0) {
-    const texts = fresh.map(
-      (e) => `${e.subject} ${e.preview} ${e.bodyText ?? ''}`
-    );
-    const embeddings = await embedTexts(texts);
+    const embeddings = await embedTexts(fresh.map(buildIndexText));
 
     const vectors = fresh.map((email, i) => ({
       id: email.id,
       values: embeddings[i],
       metadata: {
         from: email.from,
+        fromName: email.fromName ?? email.from,
         subject: email.subject,
         preview: email.preview,
         date: email.date,
         unread: email.unread,
+        // Kept so the reranker has real content to score against without a
+        // second round-trip to Gmail.
+        snippet: (email.bodyText ?? email.preview ?? '').slice(0, SNIPPET_CHARS),
       },
     }));
 
@@ -144,7 +205,14 @@ export async function upsertEmails(
 
 export interface EmailSearchResult {
   id: string;
+  /**
+   * Relevance in [0,1]. When `scoreKind` is `rerank` this is a cross-encoder
+   * score, which spreads across the full range and is meaningful to show as a
+   * percentage. When the reranker is unavailable it falls back to raw cosine
+   * similarity, which clusters in a narrow high band.
+   */
   score: number;
+  scoreKind: 'rerank' | 'cosine';
   from: string;
   subject: string;
   preview: string;
@@ -152,9 +220,52 @@ export interface EmailSearchResult {
   unread: boolean;
 }
 
+interface Candidate {
+  id: string;
+  cosine: number;
+  from: string;
+  subject: string;
+  preview: string;
+  snippet: string;
+  date: string;
+  unread: boolean;
+}
+
 /**
- * Semantic similarity search within one user's namespace.
- * The query string is embedded with inputType: 'query' for asymmetric search.
+ * Multiplier in [1 - RECENCY_WEIGHT, 1] that decays with age. Applied after
+ * reranking so it nudges ordering without inventing relevance.
+ */
+function recencyFactor(iso: string): number {
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return 1 - RECENCY_WEIGHT;
+  const ageDays = Math.max(0, (Date.now() - t) / 86_400_000);
+  const decay = Math.exp(-ageDays / RECENCY_DECAY_DAYS);
+  return 1 - RECENCY_WEIGHT + RECENCY_WEIGHT * decay;
+}
+
+/** What the cross-encoder actually reads for each candidate. */
+function buildRerankText(c: Candidate): string {
+  return [
+    `From: ${c.from}`,
+    `Subject: ${c.subject}`,
+    c.snippet || c.preview,
+  ]
+    .filter(Boolean)
+    .join('\n')
+    .slice(0, 2000);
+}
+
+/**
+ * Two-stage semantic search within one user's namespace.
+ *
+ *   1. Dense retrieval pulls CANDIDATE_K candidates (cheap, high recall, but
+ *      blurs names, numbers and other exact tokens).
+ *   2. A cross-encoder reranks those candidates against the query, which is
+ *      what actually fixes "the obvious match is 4th".
+ *   3. A mild recency factor breaks ties toward newer mail.
+ *
+ * If the reranker is unavailable the dense order is returned unchanged and
+ * `scoreKind` says so, rather than failing the search.
  */
 export async function searchEmails(
   userKey: string,
@@ -168,19 +279,66 @@ export async function searchEmails(
 
   const results = await index.query({
     vector: queryVector,
-    topK,
+    topK: Math.max(CANDIDATE_K, topK),
     includeMetadata: true,
   });
 
-  return (results.matches ?? []).map((match) => ({
+  const candidates: Candidate[] = (results.matches ?? []).map((match) => ({
     id: match.id,
-    score: match.score ?? 0,
-    from: String(match.metadata?.from ?? ''),
+    cosine: match.score ?? 0,
+    from: String(match.metadata?.fromName ?? match.metadata?.from ?? ''),
     subject: String(match.metadata?.subject ?? ''),
     preview: String(match.metadata?.preview ?? ''),
+    snippet: String(match.metadata?.snippet ?? ''),
     date: String(match.metadata?.date ?? ''),
     unread: Boolean(match.metadata?.unread ?? false),
   }));
+
+  if (candidates.length === 0) return [];
+
+  const toResult = (
+    c: Candidate,
+    score: number,
+    scoreKind: 'rerank' | 'cosine'
+  ): EmailSearchResult => ({
+    id: c.id,
+    score,
+    scoreKind,
+    from: c.from,
+    subject: c.subject,
+    preview: c.preview,
+    date: c.date,
+    unread: c.unread,
+  });
+
+  try {
+    const reranked = await getPinecone().inference.rerank({
+      model: RERANK_MODEL,
+      query,
+      documents: candidates.map((c) => ({
+        id: c.id,
+        text: buildRerankText(c),
+      })),
+      rankFields: ['text'],
+      returnDocuments: false,
+      topN: candidates.length,
+    });
+
+    return reranked.data
+      .map((row) => {
+        const c = candidates[row.index];
+        if (!c) return null;
+        return toResult(c, row.score * recencyFactor(c.date), 'rerank');
+      })
+      .filter((r): r is EmailSearchResult => r !== null)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, topK);
+  } catch (error) {
+    console.warn('[search] rerank unavailable, using dense order:', error);
+    return candidates
+      .slice(0, topK)
+      .map((c) => toResult(c, c.cosine, 'cosine'));
+  }
 }
 
 /**

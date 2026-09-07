@@ -27,11 +27,14 @@ export async function GET(request: NextRequest) {
         emails.map((e) => ({
           id: e.id,
           from: e.from,
+          fromName: e.fromName,
+          fromEmail: e.fromEmail,
           subject: e.subject,
           preview: e.preview,
           date: e.date,
           unread: e.unread,
-          bodyText: (e.body ?? '').slice(0, 500),
+          // Enough body for both the embedding and the reranker snippet.
+          bodyText: (e.body ?? '').slice(0, 1200),
         }))
       ).catch((err) => console.warn('[embeddings] upsert failed:', err));
     }
