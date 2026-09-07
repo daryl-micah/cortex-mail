@@ -31,7 +31,7 @@ export function dispatchAssistantAction(action: AssistantAction): string {
       if (!compose.to || !compose.subject) {
         return 'Cannot send: missing recipient or subject';
       }
-      // Handled by AssistantPanel with confirmation dialog
+      // Handled by the caller with a confirmation dialog (see SearchPalette)
       return 'SEND_REQUEST_PENDING';
     }
 

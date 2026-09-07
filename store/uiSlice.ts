@@ -4,7 +4,6 @@ export type ViewMode =
   | 'TODAY'
   | 'INBOX'
   | 'SENT'
-  | 'SEARCH'
   | 'NEEDS_REPLY'
   | 'WAITING_ON'
   | 'FOLLOW_UP'

@@ -54,7 +54,12 @@ const UNSUBSCRIBE_RE =
   /(unsubscribe|opt.?out|view (this )?(email )?in (your )?browser|manage (your )?(email )?preferences)/i;
 
 export function buildPreview(text: string, maxLength = 140): string {
-  const decoded = decodeEntities(text);
+  // Some senders' "plain text" part (or our htmlBody fallback) is actually
+  // raw HTML source — strip tags before decoding so markup never leaks
+  // into list previews.
+  const decoded = /<[a-z!][\s\S]*>/i.test(text)
+    ? htmlToText(text)
+    : decodeEntities(text);
 
   const lines = decoded
     .split('\n')

@@ -7,7 +7,6 @@ import InboxView from '@/features/mail/InboxView';
 import SentView from '@/features/mail/SentView';
 import EmailDetailView from '@/features/mail/EmailDetailView';
 import ComposeView from '@/features/mail/ComposeView';
-import SearchView from '@/features/mail/SearchView';
 import Drawer from '@/components/ui/Drawer';
 import { closeEmail, closeCompose } from '@/store/uiSlice';
 import { useEmailSync } from '@/lib/useEmailSync';
@@ -33,8 +32,6 @@ export default function MainView() {
         return <InboxView />;
       case 'SENT':
         return <SentView />;
-      case 'SEARCH':
-        return <SearchView />;
       case 'NEEDS_REPLY':
         return <InboxView statusFilter="needs_reply" title="Needs Reply" />;
       case 'WAITING_ON':

@@ -5,20 +5,20 @@ import { Inter, JetBrains_Mono, Silkscreen } from 'next/font/google';
 
 const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-sans',
+  variable: '--font-inter',
   display: 'swap',
 });
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
-  variable: '--font-mono',
+  variable: '--font-jetbrains-mono',
   display: 'swap',
 });
 
 const silkscreen = Silkscreen({
   subsets: ['latin'],
   weight: ['400', '700'],
-  variable: '--font-display',
+  variable: '--font-silkscreen',
   display: 'swap',
 });
 

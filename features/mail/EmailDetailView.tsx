@@ -115,7 +115,7 @@ export default function EmailDetailView() {
       </header>
 
       <div className="flex-1 overflow-y-auto no-scrollbar p-4 sm:p-6 space-y-4">
-        <h2 className="text-lg sm:text-xl font-semibold wrap-break-word">
+        <h2 className="text-lg sm:text-xl font-semibold wrap-break-word font-email">
           {email.subject || '(no subject)'}
         </h2>
 
@@ -124,8 +124,8 @@ export default function EmailDetailView() {
             {email.initials}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-sm font-medium truncate">{email.fromName}</div>
-            <div className="text-xs text-muted-foreground truncate">
+            <div className="text-sm font-medium truncate font-email">{email.fromName}</div>
+            <div className="text-xs text-muted-foreground truncate font-email">
               {email.fromEmail}
             </div>
           </div>
@@ -145,7 +145,7 @@ export default function EmailDetailView() {
               title={email.subject || 'Email content'}
             />
           ) : (
-            <div className="text-sm whitespace-pre-wrap">{email.body}</div>
+            <div className="text-sm whitespace-pre-wrap font-email">{email.body}</div>
           )}
         </div>
       </div>

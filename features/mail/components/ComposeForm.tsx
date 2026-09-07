@@ -69,12 +69,14 @@ export default function ComposeForm() {
           </div>
         )}
         <Input
+          className="font-email"
           placeholder="To"
           value={compose.to}
           onChange={(e) => dispatch(setCompose({ to: e.target.value }))}
         />
 
         <Input
+          className="font-email"
           placeholder="Subject"
           value={compose.subject}
           onChange={(e) => dispatch(setCompose({ subject: e.target.value }))}
@@ -82,7 +84,7 @@ export default function ComposeForm() {
       </div>
 
       <textarea
-        className="flex-1 p-3 resize-none bg-background border-0 focus:outline-none min-h-48 sm:min-h-72 w-full text-sm"
+        className="flex-1 p-3 resize-none bg-background border-0 focus:outline-none min-h-48 sm:min-h-72 w-full text-sm font-email"
         placeholder="Write your message..."
         value={compose.body}
         onChange={(e) => dispatch(setCompose({ body: e.target.value }))}

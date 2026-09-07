@@ -54,9 +54,13 @@
   --color-pink: var(--pink);
   --color-mint: var(--mint);
 
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
-  --font-display: 'Silkscreen', ui-monospace, monospace;
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+  --font-display: var(--font-silkscreen), ui-monospace, monospace;
+  /* App chrome default — sidebar, nav, buttons, headings, everything except email content */
+  --font-sans: var(--font-silkscreen), ui-monospace, monospace;
+  /* Actual email content only — list previews, opened email body, compose fields.
+     Explicitly applied via the font-email class so it stays Inter regardless of font-sans. */
+  --font-email: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {

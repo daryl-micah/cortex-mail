@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store';
 import NavButton from './NavButton';
 import { openCompose, setView, ViewMode } from '@/store/uiSlice';
@@ -18,14 +18,15 @@ import {
   MessagesSquare,
   Pencil,
   Search,
+  LogOut,
 } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
-import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import type { EmailCategory } from '@/types/mail';
 
 interface SidebarProps {
   onClose?: () => void;
-  onOpenAssistant?: () => void;
+  onOpenSearch?: () => void;
 }
 
 const SMART_CATEGORIES: { category: EmailCategory; label: string; icon: React.ReactNode }[] = [
@@ -35,11 +36,21 @@ const SMART_CATEGORIES: { category: EmailCategory; label: string; icon: React.Re
   { category: 'forums', label: 'Forums', icon: <MessagesSquare /> },
 ];
 
-export default function Sidebar({ onClose, onOpenAssistant }: SidebarProps) {
+export default function Sidebar({ onClose, onOpenSearch }: SidebarProps) {
   const dispatch = useAppDispatch();
   const { data: session } = useSession();
   const view = useAppSelector((state) => state.ui.view);
   const emails = useAppSelector((state) => state.mail.emails);
+  const [avatarLoaded, setAvatarLoaded] = useState(false);
+
+  const initials =
+    session?.user?.name
+      ?.split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0])
+      .join('')
+      .toUpperCase() || '?';
 
   const counts = useMemo(() => {
     const c = {
@@ -68,30 +79,33 @@ export default function Sidebar({ onClose, onOpenAssistant }: SidebarProps) {
   };
 
   return (
-    <aside className="border-r border-border p-3 space-y-4 flex flex-col h-screen md:h-full max-h-[calc(100vh-56px)] md:max-h-none overflow-y-auto bg-card">
-      <h1 className="hidden md:flex items-center gap-1.5 text-sm font-semibold px-1">
-        <span className="font-display text-[13px] tracking-wide">CORTEX MAIL</span>
-      </h1>
+    <aside className="border-r border-border flex flex-col h-screen md:h-full overflow-hidden bg-card">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-4">
+        <h1 className="hidden md:flex items-center gap-1.5 text-sm font-semibold px-1">
+          <span className="font-display text-[13px] tracking-wide">CORTEX MAIL</span>
+        </h1>
 
-      <button
-        onClick={() => {
-          dispatch(openCompose());
-          onClose?.();
-        }}
-        className="chrome-surface bevel rounded-md py-2 px-3 flex items-center justify-center gap-2 text-sm font-medium text-foreground w-full"
-      >
-        <Pencil className="h-4 w-4" /> Compose
-      </button>
+        <button
+          onClick={() => {
+            dispatch(openCompose());
+            onClose?.();
+          }}
+          className="chrome-surface bevel rounded-md py-2 px-3 flex items-center justify-center gap-2 text-sm font-medium text-foreground w-full"
+        >
+          <Pencil className="h-4 w-4" /> Compose
+        </button>
 
-      <button
-        onClick={() => handleNavigation('SEARCH')}
-        className="bevel rounded-md py-1.5 px-2.5 flex items-center gap-2 text-sm text-muted-foreground w-full text-left bg-surface-2"
-      >
-        <Search className="h-3.5 w-3.5" />
-        Search mail…
-      </button>
+        <button
+          onClick={() => {
+            onOpenSearch?.();
+            onClose?.();
+          }}
+          className="bevel rounded-md py-1.5 px-2.5 flex items-center gap-2 text-sm text-muted-foreground w-full text-left bg-surface-2"
+        >
+          <Search className="h-3.5 w-3.5" />
+          Search mail…
+        </button>
 
-      <div className="flex-1 space-y-4">
         <div className="space-y-0.5">
           <p className="chrome-label text-muted-foreground px-2.5 mb-1">Core</p>
           <NavButton
@@ -159,50 +173,53 @@ export default function Sidebar({ onClose, onOpenAssistant }: SidebarProps) {
             />
           ))}
         </div>
-
-        {onOpenAssistant && (
-          <div className="hidden md:block">
-            <NavButton
-              label="Ask Cortex"
-              icon={<Sparkles />}
-              onClick={onOpenAssistant}
-            />
-          </div>
-        )}
       </div>
 
-      {/* User Info Section */}
-      <div className="border-t border-border pt-3 space-y-2">
+      {/* User Info Section — pinned, never scrolls away */}
+      <div className="shrink-0 border-t border-border px-3 pt-3 pb-3 bg-card">
+        <div className="chrome-label text-muted-foreground px-1 mb-2">
+          Local · {Intl.DateTimeFormat().resolvedOptions().timeZone}
+        </div>
         {session?.user && (
-          <div className="flex items-center gap-2 mb-2">
-            {session.user.image && (
-              <img
-                src={session.user.image}
-                alt={session.user.name || 'User'}
-                className="w-8 h-8 rounded-full bevel"
-              />
-            )}
+          <div className="flex items-center gap-2">
+            <div className="relative w-8 h-8 rounded-full bevel shrink-0 overflow-hidden">
+              {/* Always-visible base layer — never leaves the row empty */}
+              <div className="absolute inset-0 chrome-surface flex items-center justify-center chrome-label text-[10px] text-foreground">
+                {initials}
+              </div>
+              {/* Real photo — only shown once it has actually finished loading */}
+              {session.user.image && (
+                <img
+                  key={session.user.image}
+                  src={session.user.image}
+                  alt=""
+                  referrerPolicy="no-referrer"
+                  onLoad={() => setAvatarLoaded(true)}
+                  className={cn(
+                    'absolute inset-0 w-8 h-8 object-cover transition-opacity',
+                    avatarLoaded ? 'opacity-100' : 'opacity-0'
+                  )}
+                />
+              )}
+            </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">
                 {session.user.name}
               </p>
-              <p className="text-xs text-muted-foreground truncate">
+              <p className="text-xs text-muted-foreground truncate font-email">
                 {session.user.email}
               </p>
             </div>
+            <button
+              onClick={() => signOut({ callbackUrl: '/login' })}
+              title="Sign out"
+              aria-label="Sign out"
+              className="shrink-0 h-8 w-8 rounded-md flex items-center justify-center bevel text-muted-foreground hover:text-destructive hover:bg-surface-2 transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         )}
-        <div className="chrome-label text-muted-foreground px-1">
-          Local · {Intl.DateTimeFormat().resolvedOptions().timeZone}
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full bevel"
-          onClick={() => signOut({ callbackUrl: '/login' })}
-        >
-          Sign Out
-        </Button>
       </div>
     </aside>
   );

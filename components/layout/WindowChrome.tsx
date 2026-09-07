@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { signOut } from 'next-auth/react';
 import { Sparkles } from 'lucide-react';
 
 function useClock() {
@@ -26,9 +25,6 @@ export default function WindowChrome({ children }: { children: React.ReactNode }
         <div className="chrome-surface h-8 shrink-0 flex items-center justify-between px-3 select-none">
           <div className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full bg-white/70 border border-black/10" aria-hidden />
-            <span className="chrome-label text-[10px] text-foreground/70 ml-1">
-              CORTEX MAIL
-            </span>
           </div>
 
           <div className="hidden sm:flex items-center gap-1.5 bg-white/40 rounded px-2 py-0.5 chrome-label text-[9px] text-foreground/80">
@@ -40,21 +36,10 @@ export default function WindowChrome({ children }: { children: React.ReactNode }
             <span className="chrome-label text-[10px] text-foreground/70 tabular-nums hidden sm:inline">
               {time}
             </span>
-            <div className="flex items-center gap-1.5">
-              <span
-                className="h-2.5 w-2.5 rounded-full bg-white/50 border border-black/10"
-                aria-hidden
-              />
-              <span
-                className="h-2.5 w-2.5 rounded-full bg-white/50 border border-black/10"
-                aria-hidden
-              />
-              <button
-                onClick={() => signOut({ callbackUrl: '/login' })}
-                className="h-2.5 w-2.5 rounded-full bg-pink border border-black/10 hover:brightness-95"
-                aria-label="Sign out"
-                title="Sign out"
-              />
+            <div className="flex items-center gap-1.5" aria-hidden>
+              <span className="h-2.5 w-2.5 rounded-full bg-white/50 border border-black/10" />
+              <span className="h-2.5 w-2.5 rounded-full bg-white/50 border border-black/10" />
+              <span className="h-2.5 w-2.5 rounded-full bg-pink/70 border border-black/10" />
             </div>
           </div>
         </div>

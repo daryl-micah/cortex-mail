@@ -3,21 +3,20 @@
 import { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import MainView from './MainView';
-import AssistantPanel from './AssistantPanel';
 import WindowChrome from './WindowChrome';
-import Drawer from '@/components/ui/Drawer';
-import { Menu, X, Sparkles } from 'lucide-react';
+import SearchPalette from './SearchPalette';
+import { Menu, X, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function AppShell() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
-        setAssistantOpen(true);
+        setSearchOpen(true);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -26,7 +25,7 @@ export default function AppShell() {
 
   return (
     <WindowChrome>
-      <div className="h-full flex flex-col md:grid md:grid-cols-[248px_1fr]">
+      <div className="h-full flex flex-col md:grid md:grid-cols-[248px_1fr] md:grid-rows-[minmax(0,1fr)]">
         {/* Mobile Header with Navigation Buttons */}
         <div className="md:hidden flex items-center justify-between border-b border-border p-3 gap-2">
           <Button
@@ -47,10 +46,10 @@ export default function AppShell() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setAssistantOpen(true)}
+            onClick={() => setSearchOpen(true)}
             className="h-10 w-10"
           >
-            <Sparkles className="h-5 w-5" />
+            <Search className="h-5 w-5" />
           </Button>
         </div>
 
@@ -60,7 +59,7 @@ export default function AppShell() {
         >
           <Sidebar
             onClose={() => setSidebarOpen(false)}
-            onOpenAssistant={() => setAssistantOpen(true)}
+            onOpenSearch={() => setSearchOpen(true)}
           />
         </div>
 
@@ -78,14 +77,7 @@ export default function AppShell() {
         )}
       </div>
 
-      <Drawer
-        open={assistantOpen}
-        onClose={() => setAssistantOpen(false)}
-        widthClassName="max-w-[400px]"
-        aria-label="Ask Cortex"
-      >
-        <AssistantPanel onClose={() => setAssistantOpen(false)} />
-      </Drawer>
+      <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
     </WindowChrome>
   );
 }

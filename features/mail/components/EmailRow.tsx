@@ -82,7 +82,7 @@ export default function EmailRow({ email }: Props) {
         <div className="flex items-center justify-between gap-2">
           <span
             className={cn(
-              'text-sm truncate',
+              'text-sm truncate font-email',
               email.unread ? 'font-semibold text-foreground' : 'text-muted-foreground'
             )}
           >
@@ -96,7 +96,7 @@ export default function EmailRow({ email }: Props) {
         <div className="flex items-center justify-between gap-2">
           <span
             className={cn(
-              'text-[13px] truncate',
+              'text-[13px] truncate font-email',
               email.unread ? 'text-foreground' : 'text-muted-foreground'
             )}
           >
@@ -126,7 +126,7 @@ export default function EmailRow({ email }: Props) {
           </span>
         </div>
 
-        <div className="text-xs text-muted-foreground truncate mt-0.5">
+        <div className="text-xs text-muted-foreground truncate mt-0.5 font-email">
           {email.preview}
         </div>
 
