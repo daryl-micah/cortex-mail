@@ -81,7 +81,7 @@ export default function Sidebar({ onClose, onOpenSearch }: SidebarProps) {
 
   return (
     <aside className="border-r border-border flex flex-col h-screen md:h-full overflow-hidden bg-card">
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">
         <h1 className="hidden md:flex items-center gap-1.5 text-sm font-semibold px-1">
           <span className="font-display text-[13px] tracking-wide">CORTEX MAIL</span>
         </h1>
@@ -91,7 +91,7 @@ export default function Sidebar({ onClose, onOpenSearch }: SidebarProps) {
             dispatch(openCompose());
             onClose?.();
           }}
-          className="chrome-surface bevel rounded-md py-2 px-3 flex items-center justify-center gap-2 text-sm font-medium text-foreground w-full"
+          className="chrome-surface bevel rounded-md py-1.5 px-3 flex items-center justify-center gap-2 text-sm font-medium text-foreground w-full"
         >
           <Pencil className="h-4 w-4" /> Compose
         </button>
@@ -108,7 +108,7 @@ export default function Sidebar({ onClose, onOpenSearch }: SidebarProps) {
         </button>
 
         <div className="space-y-0.5">
-          <p className="chrome-label text-muted-foreground px-2.5 mb-1">Core</p>
+          <p className="chrome-label text-muted-foreground px-2.5 mb-0.5">Core</p>
           <NavButton
             label="Today"
             icon={<Sparkles />}
@@ -146,7 +146,7 @@ export default function Sidebar({ onClose, onOpenSearch }: SidebarProps) {
         </div>
 
         <div className="space-y-0.5">
-          <p className="chrome-label text-muted-foreground px-2.5 mb-1">Mail</p>
+          <p className="chrome-label text-muted-foreground px-2.5 mb-0.5">Mail</p>
           <NavButton
             label="Sent"
             icon={<Send />}
@@ -163,7 +163,7 @@ export default function Sidebar({ onClose, onOpenSearch }: SidebarProps) {
         </div>
 
         <div className="space-y-0.5">
-          <p className="chrome-label text-muted-foreground px-2.5 mb-1">Smart</p>
+          <p className="chrome-label text-muted-foreground px-2.5 mb-0.5">Smart</p>
           {SMART_CATEGORIES.map(({ category, label, icon }) => (
             <NavButton
               key={category}

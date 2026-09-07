@@ -73,7 +73,7 @@ export default function MainView() {
       <Drawer
         open={detailEmailId !== null}
         onClose={() => dispatch(closeEmail())}
-        widthClassName="max-w-[760px]"
+        widthClassName="max-w-[1000px]"
         aria-label="Email detail"
       >
         <EmailDetailView />

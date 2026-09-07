@@ -20,8 +20,8 @@ export default function WindowChrome({ children }: { children: React.ReactNode }
   const time = useClock();
 
   return (
-    <div className="h-screen w-screen bg-bg-desktop flex items-center justify-center p-2 sm:p-4">
-      <div className="w-full h-full max-w-[1600px] rounded-lg overflow-hidden bevel shadow-2xl flex flex-col bg-bg-window">
+    <div className="h-screen w-screen bg-bg-desktop flex items-center justify-center p-1 sm:p-2">
+      <div className="w-full h-full max-w-[1920px] rounded-lg overflow-hidden bevel shadow-2xl flex flex-col bg-bg-window">
         <div className="chrome-surface h-8 shrink-0 flex items-center justify-between px-3 select-none">
           <div className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full bg-white/70 border border-black/10" aria-hidden />
