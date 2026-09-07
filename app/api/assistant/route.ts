@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { runAgent, type InboxSnapshotEmail } from '@/lib/reactAgent';
 import type { ContextMessage } from '@/lib/contextBuilder';
+import { getUserKey } from '@/lib/session';
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.accessToken) {
+  const userKey = session ? getUserKey(session) : null;
+  if (!session?.accessToken || !userKey) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -32,6 +34,7 @@ export async function POST(req: NextRequest) {
       conversationHistory,
       {
         accessToken: session.accessToken as string,
+        userKey,
         currentEmailId: context.selectedEmailId,
       },
       Array.isArray(context.inbox) ? context.inbox : []

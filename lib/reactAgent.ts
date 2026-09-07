@@ -194,7 +194,7 @@ export async function runAgent(
   // RAG: retrieve relevant emails before the first LLM call
   let ragResults: string;
   try {
-    const hits = await searchEmails(userMessage, 8);
+    const hits = await searchEmails(context.userKey, userMessage, 8);
     ragResults =
       hits.length > 0
         ? `Relevant emails (semantic search):\n${JSON.stringify(hits, null, 2)}`

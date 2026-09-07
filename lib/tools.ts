@@ -8,6 +8,8 @@ import { ProposeActionsInputSchema } from './schemas';
 // ---------------------------------------------------------------------------
 export interface ToolContext {
   accessToken: string;
+  /** Namespaces the semantic index per user */
+  userKey: string;
   currentEmailId?: string;
 }
 
@@ -112,9 +114,9 @@ export const tools: Tool[] = [
       query: z.string().describe('Natural language search query'),
       limit: z.number().optional().default(5),
     }),
-    execute: async (params) => {
+    execute: async (params, context) => {
       const { query, limit } = params as { query: string; limit: number };
-      const results = await searchEmails(query, limit ?? 5);
+      const results = await searchEmails(context.userKey, query, limit ?? 5);
       return JSON.stringify(results);
     },
   },

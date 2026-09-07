@@ -5,6 +5,8 @@ declare module 'next-auth' {
     accessToken?: string;
     refreshToken?: string;
     expiresAt?: number;
+    /** Stable provider account id (Google `sub`) */
+    userId?: string;
   }
 }
 

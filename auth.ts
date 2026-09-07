@@ -47,6 +47,8 @@ const config: NextAuthConfig = {
       session.accessToken = token.accessToken as string;
       session.refreshToken = token.refreshToken as string;
       session.expiresAt = token.expiresAt as number;
+      // Stable Google account id — used to namespace per-user data (Pinecone)
+      if (token.sub) session.userId = token.sub;
       return session;
     },
   },
