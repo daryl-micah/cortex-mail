@@ -11,13 +11,13 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 to-indigo-100">
+    <div className="relative min-h-screen flex items-center justify-center bg-bg-desktop">
       <a
         href="https://github.com/daryl-micah/cortex-mail"
         target="_blank"
         rel="noreferrer"
         aria-label="View project on GitHub"
-        className="absolute right-4 top-4 z-10 rounded-md border bg-background/20 p-2 transition-opacity hover:opacity-80"
+        className="absolute right-4 top-4 z-10 rounded-md bevel bg-card/60 p-2 transition-opacity hover:opacity-80"
       >
         <Image
           src="/github.svg"
@@ -27,7 +27,8 @@ export default function LoginPage() {
           className="h-5 w-5"
         />
       </a>
-      <Card className="w-full max-w-md p-8 space-y-6">
+      <Card className="w-full max-w-md p-8 space-y-6 bevel shadow-2xl">
+        <div className="chrome-surface -mt-8 -mx-8 mb-2 h-2 rounded-t-xl" aria-hidden />
         <div className="text-center space-y-2">
           <div className="flex justify-center">
             <Image

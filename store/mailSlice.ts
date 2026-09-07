@@ -1,4 +1,4 @@
-import { Email, Filters } from '@/types/mail';
+import { Email, EmailAI, EmailInsight, Filters } from '@/types/mail';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 interface ComposeState {
@@ -81,6 +81,32 @@ const mailSlice = createSlice({
         email.unread = false;
       }
     },
+    toggleStar(state, action: PayloadAction<{ id: string; starred: boolean }>) {
+      const email =
+        state.emails.find((e) => e.id === action.payload.id) ||
+        state.sentEmails.find((e) => e.id === action.payload.id);
+      if (email) {
+        email.starred = action.payload.starred;
+      }
+    },
+    setClassifications(
+      state,
+      action: PayloadAction<Record<string, EmailAI>>
+    ) {
+      for (const email of state.emails) {
+        const ai = action.payload[email.id];
+        if (ai) email.ai = ai;
+      }
+    },
+    setInsight(
+      state,
+      action: PayloadAction<{ id: string; insight: EmailInsight }>
+    ) {
+      const email =
+        state.emails.find((e) => e.id === action.payload.id) ??
+        state.sentEmails.find((e) => e.id === action.payload.id);
+      if (email) email.insight = action.payload.insight;
+    },
     setFilters(state, action: PayloadAction<Filters>) {
       state.filters = action.payload;
     },
@@ -105,6 +131,9 @@ export const {
   setLoadingMore,
   setError,
   markAsRead,
+  toggleStar,
+  setClassifications,
+  setInsight,
   setFilters,
   setCompose,
   clearCompose,

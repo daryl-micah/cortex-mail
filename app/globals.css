@@ -5,8 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 3px);
+  --radius-md: calc(var(--radius) - 1px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
@@ -43,89 +43,112 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-bg-desktop: var(--bg-desktop);
+  --color-bg-window: var(--bg-window);
+  --color-surface-2: var(--surface-2);
+  --color-border-strong: var(--border-strong);
+  --color-text-muted: var(--text-muted);
+  --color-accent-hover: var(--accent-hover);
+  --color-ice: var(--ice);
+  --color-pink: var(--pink);
+  --color-mint: var(--mint);
+
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+  --font-display: var(--font-silkscreen), ui-monospace, monospace;
+  /* App chrome default — sidebar, nav, buttons, headings, everything except email content */
+  --font-sans: var(--font-silkscreen), ui-monospace, monospace;
+  /* Actual email content only — list previews, opened email body, compose fields.
+     Explicitly applied via the font-email class so it stays Inter regardless of font-sans. */
+  --font-email: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --radius: 6px;
+
+  /* Cortex Mail — Y2K chrome / lavender theme */
+  --bg-desktop: oklch(0.9 0.035 302);
+  --bg-window: oklch(0.985 0.008 302);
+  --background: var(--bg-window);
+  --foreground: oklch(0.2 0.03 300);
+
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: var(--foreground);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --popover-foreground: var(--foreground);
+
+  --primary: oklch(0.56 0.19 288);
+  --primary-foreground: oklch(0.99 0 0);
+
+  --secondary: oklch(0.95 0.015 300);
+  --secondary-foreground: var(--foreground);
+
+  --muted: oklch(0.95 0.015 300);
+  --muted-foreground: oklch(0.52 0.045 296);
+  --text-muted: var(--muted-foreground);
+
+  --accent: oklch(0.56 0.19 288);
+  --accent-foreground: oklch(0.99 0 0);
+  --accent-hover: oklch(0.49 0.19 288);
+
+  --destructive: oklch(0.6 0.21 20);
+
+  --border: oklch(0.9 0.025 300);
+  --border-strong: oklch(0.78 0.055 296);
+  --input: oklch(0.9 0.025 300);
+  --ring: oklch(0.56 0.19 288);
+
+  --surface-2: oklch(0.965 0.012 300);
+
+  --ice: oklch(0.82 0.07 235);
+  --pink: oklch(0.85 0.06 350);
+  --mint: oklch(0.82 0.09 155);
+
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--accent);
+  --sidebar-primary-foreground: var(--accent-foreground);
+  --sidebar-accent: var(--surface-2);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
-    @apply bg-background text-foreground;
+    @apply bg-bg-window text-foreground;
   }
 }
 
 @layer components {
+  /* Y2K chrome gradient + bevel — reserved for the window title bar,
+     the Compose button, and AI-generated surfaces */
+  .chrome-surface {
+    background: linear-gradient(135deg, #c9bff6 0%, #b7c8f5 45%, #eac9e5 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+
+  .bevel {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    border: 1px solid var(--border-strong);
+  }
+
+  .chrome-label {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 10px;
+  }
+
   /* Mobile-first responsive touch targets */
   @media (max-width: 768px) {
     button {
@@ -135,8 +158,6 @@
     input,
     textarea {
       @apply text-base;
-      /* Prevent zoom on input focus on iOS */
-      @apply text-lg;
     }
   }
 

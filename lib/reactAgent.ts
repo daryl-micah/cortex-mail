@@ -193,11 +193,16 @@ export async function runAgent(
   const systemPrompt = buildSystemPrompt();
   const builtCtx = await buildContext(systemPrompt, ragResults, history);
 
+  // Tell the model which email is open so "this email" resolves without a search
+  const openEmailNote = context.currentEmailId
+    ? `\n\n## Currently Open Email\nID: ${context.currentEmailId}\nWhen the user says "this email", "this thread", or "the current email", use this ID directly with get_email_body, summarize_thread, or reply_to_email instead of searching.`
+    : '';
+
   // Build initial message array
   let messages: Groq.Chat.ChatCompletionMessageParam[] = [
     {
       role: 'system',
-      content: `${builtCtx.system}\n\n## Email Context\n${builtCtx.ragContext}`,
+      content: `${builtCtx.system}\n\n## Email Context\n${builtCtx.ragContext}${openEmailNote}`,
     },
     ...builtCtx.conversation.map((m) => ({
       role: m.role as 'user' | 'assistant',

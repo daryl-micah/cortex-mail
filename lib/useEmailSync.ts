@@ -7,9 +7,53 @@ import {
   setSentEmails,
   setLoading,
   setError,
+  setClassifications,
 } from '@/store/mailSlice';
+import type { Email, EmailAI } from '@/types/mail';
 
 const POLL_INTERVAL = 30000; // 30 seconds
+
+async function classifyAndDispatch(
+  emails: Email[],
+  dispatch: ReturnType<typeof useAppDispatch>
+) {
+  const unclassified = emails.filter((e) => !e.ai);
+  if (unclassified.length === 0) return;
+
+  try {
+    const response = await fetch('/api/emails/classify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        emails: unclassified.map((e) => ({
+          id: e.id,
+          fromName: e.fromName,
+          subject: e.subject,
+          preview: e.preview,
+          date: e.date,
+        })),
+      }),
+    });
+
+    if (!response.ok) return;
+
+    const data = await response.json();
+    const classifications: Array<EmailAI & { id: string }> =
+      data.classifications || [];
+
+    const byId: Record<string, EmailAI> = {};
+    for (const c of classifications) {
+      const { id, ...ai } = c;
+      byId[id] = ai;
+    }
+
+    if (Object.keys(byId).length > 0) {
+      dispatch(setClassifications(byId));
+    }
+  } catch (error) {
+    console.warn('Email classification failed:', error);
+  }
+}
 
 export function useEmailSync() {
   const dispatch = useAppDispatch();
@@ -25,8 +69,9 @@ export function useEmailSync() {
       }
 
       const data = await response.json();
-      const emails = data.emails || [];
+      const emails: Email[] = data.emails || [];
       dispatch(setEmails({ emails, nextPageToken: data.nextPageToken }));
+      classifyAndDispatch(emails, dispatch);
     } catch (error) {
       console.error('Error fetching inbox:', error);
       dispatch(setError('Failed to load emails, please sign-in again.'));
@@ -38,8 +83,9 @@ export function useEmailSync() {
       const response = await fetch('/api/emails/inbox');
       if (response.ok) {
         const data = await response.json();
-        const emails = data.emails || [];
+        const emails: Email[] = data.emails || [];
         dispatch(setEmails({ emails, nextPageToken: data.nextPageToken }));
+        classifyAndDispatch(emails, dispatch);
       }
     } catch (error) {
       console.error('Silent inbox refresh failed:', error);

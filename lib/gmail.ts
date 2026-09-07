@@ -1,5 +1,16 @@
 import { google } from 'googleapis';
 import { Session } from 'next-auth';
+import { buildPreview, parseSender } from './emailNormalize';
+import type { EmailCategory } from '@/types/mail';
+
+function categoryFromLabels(labelIds: string[] | undefined): EmailCategory {
+  if (!labelIds) return 'primary';
+  if (labelIds.includes('CATEGORY_PROMOTIONS')) return 'promotions';
+  if (labelIds.includes('CATEGORY_UPDATES')) return 'updates';
+  if (labelIds.includes('CATEGORY_SOCIAL')) return 'social';
+  if (labelIds.includes('CATEGORY_FORUMS')) return 'forums';
+  return 'primary';
+}
 
 /**
  * Initialize Gmail API client with user's access token
@@ -109,17 +120,23 @@ export async function fetchEmails(
         }
       }
 
+      const fromHeader = getHeader('From');
+      const sender = parseSender(fromHeader);
+
       return {
         id: msg.data.id!,
-        from: getHeader('From'),
+        from: fromHeader,
+        fromName: sender.name,
+        fromEmail: sender.email,
+        initials: sender.initials,
         subject: getHeader('Subject'),
-        preview:
-          body.substring(0, 100) ||
-          htmlBody.replace(/<[^>]*>/g, '').substring(0, 100),
+        preview: buildPreview(body || htmlBody, 140),
         body: body,
         htmlBody: htmlBody || undefined,
-        date: new Date(parseInt(msg.data.internalDate || '0')).toLocaleString(),
+        date: new Date(parseInt(msg.data.internalDate || '0')).toISOString(),
         unread: msg.data.labelIds?.includes('UNREAD') || false,
+        starred: msg.data.labelIds?.includes('STARRED') || false,
+        category: categoryFromLabels(msg.data.labelIds || undefined),
         threadId: msg.data.threadId,
         attachments: attachments.length > 0 ? attachments : undefined,
       };
@@ -197,6 +214,30 @@ export async function markAsRead(session: Session, messageId: string) {
 }
 
 /**
+ * Star or unstar an email
+ */
+export async function setStarred(
+  session: Session,
+  messageId: string,
+  starred: boolean
+) {
+  const gmail = getGmailClient(session);
+
+  try {
+    await gmail.users.messages.modify({
+      userId: 'me',
+      id: messageId,
+      requestBody: starred
+        ? { addLabelIds: ['STARRED'] }
+        : { removeLabelIds: ['STARRED'] },
+    });
+  } catch (error) {
+    console.error('Error setting starred state:', error);
+    throw new Error('Failed to update starred state');
+  }
+}
+
+/**
  * Fetch sent emails
  */
 export async function fetchSentEmails(session: Session, maxResults = 20) {
@@ -236,15 +277,22 @@ export async function fetchSentEmails(session: Session, maxResults = 20) {
         );
       }
 
+      const toHeader = getHeader('To');
+
       return {
         id: msg.data.id!,
         from: 'Me',
-        to: getHeader('To'),
+        fromName: 'Me',
+        fromEmail: '',
+        initials: 'ME',
+        to: toHeader,
         subject: getHeader('Subject'),
-        preview: body.substring(0, 100),
+        preview: buildPreview(body, 140),
         body: body,
-        date: new Date(parseInt(msg.data.internalDate || '0')).toLocaleString(),
+        date: new Date(parseInt(msg.data.internalDate || '0')).toISOString(),
         unread: false,
+        starred: msg.data.labelIds?.includes('STARRED') || false,
+        category: categoryFromLabels(msg.data.labelIds || undefined),
       };
     });
 
