@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 import type { EmailCategory } from '@/types/mail';
 
 interface SidebarProps {
@@ -194,10 +195,13 @@ export default function Sidebar({ onClose, onOpenSearch }: SidebarProps) {
               </div>
               {/* Real photo — only shown once it has actually finished loading */}
               {session.user.image && (
-                <img
+                <Image
                   key={session.user.image}
                   src={session.user.image}
                   alt=""
+                  width={32}
+                  height={32}
+                  unoptimized
                   referrerPolicy="no-referrer"
                   onLoad={() => setAvatarLoaded(true)}
                   className={cn(

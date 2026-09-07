@@ -61,7 +61,7 @@ export default function InboxView({
       } else {
         dispatch(setError(data.error || 'Failed to load more emails'));
       }
-    } catch (err) {
+    } catch {
       dispatch(setError('Failed to load more emails'));
     } finally {
       loadingRef.current = false;

@@ -1,7 +1,7 @@
-import { google } from 'googleapis';
+import { google, type gmail_v1 } from 'googleapis';
 import { Session } from 'next-auth';
 import { buildPreview, parseSender } from './emailNormalize';
-import type { EmailCategory } from '@/types/mail';
+import type { EmailAttachment, EmailCategory } from '@/types/mail';
 
 function categoryFromLabels(labelIds: string[] | undefined): EmailCategory {
   if (!labelIds) return 'primary';
@@ -67,10 +67,10 @@ export async function fetchEmails(
       // Get email body (both plain text and HTML)
       let body = '';
       let htmlBody = '';
-      const attachments: any[] = [];
+      const attachments: EmailAttachment[] = [];
 
       // Recursive function to extract body and attachments from parts
-      const extractContent = (parts: any[]) => {
+      const extractContent = (parts: gmail_v1.Schema$MessagePart[]) => {
         for (const part of parts) {
           if (part.parts) {
             // Recursively handle multipart
@@ -84,19 +84,20 @@ export async function fetchEmails(
           } else if (part.mimeType === 'text/html' && part.body?.data) {
             htmlBody = Buffer.from(part.body.data, 'base64').toString('utf-8');
           } else if (part.filename && part.body?.attachmentId) {
+            const partHeaders = part.headers ?? [];
             // Handle attachments (including inline images)
             attachments.push({
               attachmentId: part.body.attachmentId,
               filename: part.filename,
               mimeType: part.mimeType || 'application/octet-stream',
               size: part.body.size || 0,
-              isInline: part.headers?.some(
-                (h: any) =>
-                  h.name.toLowerCase() === 'content-disposition' &&
-                  h.value.includes('inline')
+              isInline: partHeaders.some(
+                (h) =>
+                  h.name?.toLowerCase() === 'content-disposition' &&
+                  !!h.value?.includes('inline')
               ),
-              contentId: part.headers
-                ?.find((h: any) => h.name.toLowerCase() === 'content-id')
+              contentId: partHeaders
+                .find((h) => h.name?.toLowerCase() === 'content-id')
                 ?.value?.replace(/[<>]/g, ''),
             });
           }

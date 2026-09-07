@@ -1,4 +1,4 @@
-import NextAuth from 'next-auth';
+import NextAuth, { type NextAuthConfig } from 'next-auth';
 import Google from 'next-auth/providers/google';
 
 if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
@@ -11,7 +11,7 @@ if (!process.env.NEXTAUTH_SECRET) {
   throw new Error('Missing NEXTAUTH_SECRET environment variable');
 }
 
-const config = {
+const config: NextAuthConfig = {
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
@@ -33,7 +33,7 @@ const config = {
     }),
   ],
   callbacks: {
-    async jwt({ token, account }: any) {
+    async jwt({ token, account }) {
       // Store access token and refresh token
       if (account) {
         token.accessToken = account.access_token;
@@ -42,7 +42,7 @@ const config = {
       }
       return token;
     },
-    async session({ session, token }: any) {
+    async session({ session, token }) {
       // Pass tokens to the client session
       session.accessToken = token.accessToken as string;
       session.refreshToken = token.refreshToken as string;

@@ -18,6 +18,17 @@ export interface Tool {
   execute: (params: unknown, context: ToolContext) => Promise<string>;
 }
 
+/** Minimal shapes of the Gmail REST payloads these helpers read */
+interface GmailPart {
+  mimeType?: string;
+  body?: { data?: string };
+  parts?: GmailPart[];
+}
+interface GmailHeader {
+  name: string;
+  value: string;
+}
+
 // ---------------------------------------------------------------------------
 // Gmail helpers called by tools — thin wrappers over the Gmail REST API
 // using the user's access token directly so tools can run server-side
@@ -34,10 +45,10 @@ async function fetchEmailBody(
   if (!res.ok) throw new Error(`Gmail API error: ${res.status}`);
 
   const msg = await res.json();
-  const parts: any[] = msg.payload?.parts ?? [];
+  const parts: GmailPart[] = msg.payload?.parts ?? [];
   let plain = '';
 
-  const extract = (ps: any[]) => {
+  const extract = (ps: GmailPart[]) => {
     for (const p of ps) {
       if (p.parts) extract(p.parts);
       else if (p.mimeType === 'text/plain' && p.body?.data && !plain) {
@@ -76,10 +87,12 @@ async function fetchThread(
   if (!threadRes.ok) throw new Error(`Gmail API error: ${threadRes.status}`);
   const thread = await threadRes.json();
 
-  const messages: string[] = (thread.messages ?? []).map((m: any) => {
+  const messages: string[] = (
+    (thread.messages ?? []) as { payload?: { headers?: GmailHeader[] } }[]
+  ).map((m) => {
     const headers = m.payload?.headers ?? [];
     const get = (name: string) =>
-      headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())
+      headers.find((h) => h.name.toLowerCase() === name.toLowerCase())
         ?.value ?? '';
     return `From: ${get('from')}\nDate: ${get('date')}\nSubject: ${get('subject')}`;
   });

@@ -73,7 +73,7 @@ export default function LoginPage() {
           </Button>
 
           <div className="text-xs text-center text-muted-foreground">
-            We'll request access to read and send emails on your behalf
+            We&apos;ll request access to read and send emails on your behalf
           </div>
         </div>
 
