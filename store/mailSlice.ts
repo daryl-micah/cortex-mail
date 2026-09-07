@@ -75,6 +75,25 @@ const mailSlice = createSlice({
       state.error = action.payload;
       state.loading = false;
     },
+    /**
+     * Add an email the store has never seen, or refresh one it has.
+     * Locally-derived fields (ai, insight) are preserved on merge.
+     */
+    upsertEmail(state, action: PayloadAction<Email>) {
+      const incoming = action.payload;
+      const existing = state.emails.find((e) => e.id === incoming.id);
+      if (existing) {
+        Object.assign(existing, incoming, {
+          ai: incoming.ai ?? existing.ai,
+          insight: incoming.insight ?? existing.insight,
+        });
+        return;
+      }
+      state.emails.push(incoming);
+      state.emails.sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+    },
     markAsRead(state, action: PayloadAction<string>) {
       const email = state.emails.find((e) => e.id === action.payload);
       if (email) {
@@ -146,6 +165,7 @@ export const {
   setLoading,
   setLoadingMore,
   setError,
+  upsertEmail,
   markAsRead,
   setUnread,
   removeEmails,
