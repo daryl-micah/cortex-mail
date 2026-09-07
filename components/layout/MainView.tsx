@@ -7,8 +7,10 @@ import InboxView from '@/features/mail/InboxView';
 import SentView from '@/features/mail/SentView';
 import EmailDetailView from '@/features/mail/EmailDetailView';
 import ComposeView from '@/features/mail/ComposeView';
+import ActionReview from '@/components/review/ActionReview';
 import Drawer from '@/components/ui/Drawer';
 import { closeEmail, closeCompose } from '@/store/uiSlice';
+import { closeReview } from '@/store/actionsSlice';
 import { useEmailSync } from '@/lib/useEmailSync';
 import type { EmailCategory } from '@/types/mail';
 
@@ -31,6 +33,7 @@ export default function MainView() {
   const composeOpen = useAppSelector(
     (state: RootState) => state.ui.composeOpen
   );
+  const reviewOpen = useAppSelector((state: RootState) => state.actions.open);
   const dispatch = useAppDispatch();
 
   // Fetch emails on mount
@@ -86,6 +89,15 @@ export default function MainView() {
         aria-label="Compose email"
       >
         <ComposeView />
+      </Drawer>
+
+      <Drawer
+        open={reviewOpen}
+        onClose={() => dispatch(closeReview())}
+        widthClassName="max-w-[720px]"
+        aria-label="Review actions"
+      >
+        <ActionReview />
       </Drawer>
     </>
   );

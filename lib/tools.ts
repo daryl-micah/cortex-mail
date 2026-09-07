@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { searchEmails } from './embeddings';
 import { logToolCall } from './aiLogger';
+import { ProposeActionsInputSchema } from './schemas';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -15,6 +16,17 @@ export interface Tool {
   description: string;
   parameters: z.ZodSchema;
   execute: (params: unknown, context: ToolContext) => Promise<string>;
+}
+
+/** Minimal shapes of the Gmail REST payloads these helpers read */
+interface GmailPart {
+  mimeType?: string;
+  body?: { data?: string };
+  parts?: GmailPart[];
+}
+interface GmailHeader {
+  name: string;
+  value: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -33,10 +45,10 @@ async function fetchEmailBody(
   if (!res.ok) throw new Error(`Gmail API error: ${res.status}`);
 
   const msg = await res.json();
-  const parts: any[] = msg.payload?.parts ?? [];
+  const parts: GmailPart[] = msg.payload?.parts ?? [];
   let plain = '';
 
-  const extract = (ps: any[]) => {
+  const extract = (ps: GmailPart[]) => {
     for (const p of ps) {
       if (p.parts) extract(p.parts);
       else if (p.mimeType === 'text/plain' && p.body?.data && !plain) {
@@ -75,10 +87,12 @@ async function fetchThread(
   if (!threadRes.ok) throw new Error(`Gmail API error: ${threadRes.status}`);
   const thread = await threadRes.json();
 
-  const messages: string[] = (thread.messages ?? []).map((m: any) => {
+  const messages: string[] = (
+    (thread.messages ?? []) as { payload?: { headers?: GmailHeader[] } }[]
+  ).map((m) => {
     const headers = m.payload?.headers ?? [];
     const get = (name: string) =>
-      headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())
+      headers.find((h) => h.name.toLowerCase() === name.toLowerCase())
         ?.value ?? '';
     return `From: ${get('from')}\nDate: ${get('date')}\nSubject: ${get('subject')}`;
   });
@@ -196,6 +210,16 @@ export const tools: Tool[] = [
   },
 
   {
+    name: 'propose_actions',
+    description:
+      'Propose a batch of changes for the user to review before anything runs: archive, star/unstar, mark read/unread, or send a reply. Use this for ANY change to email state, and always when handling more than one email. The user approves, edits, or rejects each item in a review screen — never assume they ran.',
+    parameters: ProposeActionsInputSchema,
+    execute: async (params) => {
+      return JSON.stringify({ action: 'PROPOSE_ACTIONS', ...(params as object) });
+    },
+  },
+
+  {
     name: 'filter_emails',
     description:
       'Filter the inbox by unread status, sender, or date range. Use when the user asks to view a subset of emails.',
@@ -224,13 +248,18 @@ export function getToolDescriptions(): string {
         t.parameters instanceof z.ZodObject ? t.parameters.shape : {};
       const params = Object.entries(shape)
         .map(([key, schema]) => {
-          const desc = (schema as any)._def?.description ?? '';
+          const s = schema as { description?: string; _def?: { description?: string } };
+          const desc = s.description ?? s._def?.description ?? '';
           const optional =
             schema instanceof z.ZodOptional ? ' (optional)' : ' (required)';
           return `  - ${key}${optional}: ${desc}`;
         })
         .join('\n');
-      return `### ${t.name}\n${t.description}${params ? '\nParameters:\n' + params : ''}`;
+      const extra =
+        t.name === 'propose_actions'
+          ? `\nEach action is one of:\n  { kind: "reply", emailId, to, subject, body, reason }\n  { kind: "archive", emailId, reason }\n  { kind: "star", emailId, starred: true|false, reason }\n  { kind: "read", emailId, unread: true|false, reason }\n"reason" is one sentence from the email's content explaining why.`
+          : '';
+      return `### ${t.name}\n${t.description}${params ? '\nParameters:\n' + params : ''}${extra}`;
     })
     .join('\n\n');
 }

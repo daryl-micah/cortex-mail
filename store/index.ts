@@ -2,11 +2,13 @@ import { configureStore } from '@reduxjs/toolkit';
 import { useDispatch, useSelector } from 'react-redux';
 import uiReducer from './uiSlice';
 import mailReducer from './mailSlice';
+import actionsReducer from './actionsSlice';
 
 export const store = configureStore({
   reducer: {
     ui: uiReducer,
     mail: mailReducer,
+    actions: actionsReducer,
   },
 });
 

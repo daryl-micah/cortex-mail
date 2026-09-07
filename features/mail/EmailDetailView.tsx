@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { RootState } from '@/store';
 import { closeEmail, openCompose } from '@/store/uiSlice';
-import { setCompose, setInsight } from '@/store/mailSlice';
+import { setCompose, setInsight, removeEmails, setUnread } from '@/store/mailSlice';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -13,6 +13,8 @@ import {
   Forward,
   Sparkles,
   ArrowRight,
+  Archive,
+  MailOpen,
   FileText,
   PenLine,
   Link2,
@@ -183,6 +185,22 @@ export default function EmailDetailView() {
     dispatch(openCompose());
   };
 
+  const modify = async (op: 'archive' | 'unread') => {
+    const res = await fetch('/api/emails/modify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: [email.id], op }),
+    }).catch(() => null);
+    if (!res?.ok) return;
+    if (op === 'archive') {
+      dispatch(removeEmails([email.id]));
+      dispatch(closeEmail());
+    } else {
+      dispatch(setUnread({ id: email.id, unread: true }));
+      dispatch(closeEmail());
+    }
+  };
+
   const useSuggestedReply = () => {
     if (!email.insight?.suggestedReply) return;
     dispatch(
@@ -214,8 +232,14 @@ export default function EmailDetailView() {
     <div className="flex flex-col h-full">
       <header className="p-3 border-b border-border flex items-center justify-between">
         <div className="flex items-center gap-1">
-          <Button onClick={handleReply.bind(null, 'reply')} variant="ghost" size="sm">
+          <Button onClick={handleReply.bind(null, 'reply')} variant="ghost" size="sm" title="Reply">
             <Reply className="h-4 w-4" />
+          </Button>
+          <Button onClick={() => modify('archive')} variant="ghost" size="sm" title="Archive">
+            <Archive className="h-4 w-4" />
+          </Button>
+          <Button onClick={() => modify('unread')} variant="ghost" size="sm" title="Mark unread">
+            <MailOpen className="h-4 w-4" />
           </Button>
         </div>
         <Button onClick={handleClose} variant="ghost" size="icon-sm" aria-label="Close">

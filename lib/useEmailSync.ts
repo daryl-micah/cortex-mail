@@ -145,6 +145,8 @@ export function useEmailSync() {
         clearInterval(pollIntervalRef.current);
       }
     };
+    // Runs once on mount; the fetchers close over dispatch only and never change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return { fetchInbox, fetchSent, sendEmail };

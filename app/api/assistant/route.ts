@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { runAgent } from '@/lib/reactAgent';
+import { runAgent, type InboxSnapshotEmail } from '@/lib/reactAgent';
 import type { ContextMessage } from '@/lib/contextBuilder';
 
 export async function POST(req: NextRequest) {
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   let body: {
     message?: string;
     conversationHistory?: ContextMessage[];
-    context?: { selectedEmailId?: string };
+    context?: { selectedEmailId?: string; inbox?: InboxSnapshotEmail[] };
   };
   try {
     body = await req.json();
@@ -27,10 +27,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await runAgent(message.trim(), conversationHistory, {
-      accessToken: session.accessToken as string,
-      currentEmailId: context.selectedEmailId,
-    });
+    const result = await runAgent(
+      message.trim(),
+      conversationHistory,
+      {
+        accessToken: session.accessToken as string,
+        currentEmailId: context.selectedEmailId,
+      },
+      Array.isArray(context.inbox) ? context.inbox : []
+    );
 
     return NextResponse.json(result);
   } catch (error) {

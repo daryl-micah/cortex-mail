@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { setFilters } from '@/store/mailSlice';
 import { Filter, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 export default function FilterPanel() {
   const dispatch = useAppDispatch();
@@ -16,11 +16,15 @@ export default function FilterPanel() {
   const [unreadOnly, setUnreadOnly] = useState(filters.unread || false);
   const [dateRange, setDateRange] = useState(filters.dateRange || '');
 
-  useEffect(() => {
+  // Re-sync the form when filters change from outside (e.g. the agent),
+  // done during render per React's "adjusting state on prop change" pattern
+  const [prevFilters, setPrevFilters] = useState(filters);
+  if (filters !== prevFilters) {
+    setPrevFilters(filters);
     setSender(filters.sender || '');
     setUnreadOnly(filters.unread || false);
     setDateRange(filters.dateRange || '');
-  }, [filters]);
+  }
 
   const applyFilters = () => {
     dispatch(
@@ -31,11 +35,6 @@ export default function FilterPanel() {
       })
     );
 
-    console.log('Applied filters:', {
-      sender: sender || undefined,
-      unread: unreadOnly || undefined,
-      dateRange: dateRange || undefined,
-    });
     setShowPanel(false);
   };
 

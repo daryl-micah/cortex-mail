@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const gmail = getGmailClient(session as any);
+    const gmail = getGmailClient(session);
 
     const attachment = await gmail.users.messages.attachments.get({
       userId: 'me',

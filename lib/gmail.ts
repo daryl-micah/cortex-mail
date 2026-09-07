@@ -1,7 +1,7 @@
-import { google } from 'googleapis';
+import { google, type gmail_v1 } from 'googleapis';
 import { Session } from 'next-auth';
 import { buildPreview, parseSender } from './emailNormalize';
-import type { EmailCategory } from '@/types/mail';
+import type { EmailAttachment, EmailCategory } from '@/types/mail';
 
 function categoryFromLabels(labelIds: string[] | undefined): EmailCategory {
   if (!labelIds) return 'primary';
@@ -67,10 +67,10 @@ export async function fetchEmails(
       // Get email body (both plain text and HTML)
       let body = '';
       let htmlBody = '';
-      const attachments: any[] = [];
+      const attachments: EmailAttachment[] = [];
 
       // Recursive function to extract body and attachments from parts
-      const extractContent = (parts: any[]) => {
+      const extractContent = (parts: gmail_v1.Schema$MessagePart[]) => {
         for (const part of parts) {
           if (part.parts) {
             // Recursively handle multipart
@@ -84,19 +84,20 @@ export async function fetchEmails(
           } else if (part.mimeType === 'text/html' && part.body?.data) {
             htmlBody = Buffer.from(part.body.data, 'base64').toString('utf-8');
           } else if (part.filename && part.body?.attachmentId) {
+            const partHeaders = part.headers ?? [];
             // Handle attachments (including inline images)
             attachments.push({
               attachmentId: part.body.attachmentId,
               filename: part.filename,
               mimeType: part.mimeType || 'application/octet-stream',
               size: part.body.size || 0,
-              isInline: part.headers?.some(
-                (h: any) =>
-                  h.name.toLowerCase() === 'content-disposition' &&
-                  h.value.includes('inline')
+              isInline: partHeaders.some(
+                (h) =>
+                  h.name?.toLowerCase() === 'content-disposition' &&
+                  !!h.value?.includes('inline')
               ),
-              contentId: part.headers
-                ?.find((h: any) => h.name.toLowerCase() === 'content-id')
+              contentId: partHeaders
+                .find((h) => h.name?.toLowerCase() === 'content-id')
                 ?.value?.replace(/[<>]/g, ''),
             });
           }
@@ -138,6 +139,7 @@ export async function fetchEmails(
         starred: msg.data.labelIds?.includes('STARRED') || false,
         category: categoryFromLabels(msg.data.labelIds || undefined),
         threadId: msg.data.threadId,
+        messageId: getHeader('Message-ID') || undefined,
         attachments: attachments.length > 0 ? attachments : undefined,
       };
     });
@@ -160,14 +162,20 @@ export async function sendEmail(
   session: Session,
   to: string,
   subject: string,
-  body: string
+  body: string,
+  threading?: { threadId?: string; inReplyTo?: string }
 ) {
   const gmail = getGmailClient(session);
 
   try {
+    const headers = [`To: ${to}`, `Subject: ${subject}`];
+    // Reply headers so Gmail threads the message under the original
+    if (threading?.inReplyTo) {
+      headers.push(`In-Reply-To: ${threading.inReplyTo}`);
+      headers.push(`References: ${threading.inReplyTo}`);
+    }
     const email = [
-      `To: ${to}`,
-      `Subject: ${subject}`,
+      ...headers,
       'Content-Type: text/plain; charset=utf-8',
       '',
       body,
@@ -183,6 +191,7 @@ export async function sendEmail(
       userId: 'me',
       requestBody: {
         raw: encodedEmail,
+        threadId: threading?.threadId,
       },
     });
 
@@ -234,6 +243,51 @@ export async function setStarred(
   } catch (error) {
     console.error('Error setting starred state:', error);
     throw new Error('Failed to update starred state');
+  }
+}
+
+export type ModifyOp =
+  | 'archive'
+  | 'unarchive'
+  | 'read'
+  | 'unread'
+  | 'star'
+  | 'unstar';
+
+const MODIFY_LABELS: Record<
+  ModifyOp,
+  { addLabelIds?: string[]; removeLabelIds?: string[] }
+> = {
+  archive: { removeLabelIds: ['INBOX'] },
+  unarchive: { addLabelIds: ['INBOX'] },
+  read: { removeLabelIds: ['UNREAD'] },
+  unread: { addLabelIds: ['UNREAD'] },
+  star: { addLabelIds: ['STARRED'] },
+  unstar: { removeLabelIds: ['STARRED'] },
+};
+
+/**
+ * Apply one label operation to many messages in a single batchModify call.
+ * Gmail caps a batch at 1000 ids.
+ */
+export async function modifyMessages(
+  session: Session,
+  ids: string[],
+  op: ModifyOp
+) {
+  if (ids.length === 0) return;
+  const gmail = getGmailClient(session);
+
+  try {
+    for (let i = 0; i < ids.length; i += 1000) {
+      await gmail.users.messages.batchModify({
+        userId: 'me',
+        requestBody: { ids: ids.slice(i, i + 1000), ...MODIFY_LABELS[op] },
+      });
+    }
+  } catch (error) {
+    console.error(`Error applying ${op}:`, error);
+    throw new Error(`Failed to ${op} messages`);
   }
 }
 
