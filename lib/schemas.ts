@@ -106,6 +106,7 @@ export const EmailClassificationSchema = z.object({
     'fyi',
     'important',
     'handled',
+    'unclassified',
   ]),
   reason: z.string(),
   deadline: z.string().optional(),

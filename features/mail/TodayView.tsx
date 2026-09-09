@@ -20,6 +20,7 @@ export default function TodayView() {
   const dispatch = useAppDispatch();
   const emails = useAppSelector((state) => state.mail.emails);
   const loading = useAppSelector((state) => state.mail.loading);
+  const classifying = useAppSelector((state) => state.mail.classifying);
 
   const firstName = session?.user?.name?.split(' ')[0] ?? '';
 
@@ -33,8 +34,11 @@ export default function TodayView() {
   );
   const recent = useMemo(() => emails.slice(0, 5), [emails]);
 
-  const hasClassifications = emails.some((e) => e.ai);
   const attentionCount = needsReply.length + waitingOn.length;
+  // Only wait while a classification request is actually in flight. It used to
+  // key off "no email has a status yet", which never cleared when the model
+  // returned nothing.
+  const showSkeleton = classifying && !emails.some((e) => e.ai);
 
   return (
     <div className="w-full h-full overflow-y-auto no-scrollbar p-4 sm:p-6">
@@ -42,14 +46,14 @@ export default function TodayView() {
         {getGreeting()}{firstName ? `, ${firstName}` : ''}.
       </h1>
       <p className="text-sm text-muted-foreground mt-1 mb-5">
-        {loading
+        {loading || classifying
           ? 'Reading your inbox…'
           : attentionCount > 0
             ? `${attentionCount} email${attentionCount !== 1 ? 's' : ''} need${attentionCount === 1 ? 's' : ''} your attention.`
             : 'You’re all caught up.'}
       </p>
 
-      {!hasClassifications && !loading && (
+      {showSkeleton && !loading && (
         <div className="space-y-2 mb-6">
           <Skeleton className="h-24 w-full rounded-lg" />
           <Skeleton className="h-24 w-full rounded-lg" />

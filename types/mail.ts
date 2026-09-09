@@ -11,7 +11,9 @@ export type AIStatus =
   | 'follow_up'
   | 'fyi'
   | 'important'
-  | 'handled';
+  | 'handled'
+  /** The model didn't return a reading for this email. Renders no badge. */
+  | 'unclassified';
 
 export interface EmailAI {
   status: AIStatus;

@@ -39,7 +39,9 @@ export async function POST(request: NextRequest) {
     if (toClassify.length > 0) {
       fresh = await classifyEmails(toClassify);
       for (const c of fresh) {
-        cache.set(c.id, c);
+        // Don't cache a failure — the client stops asking on its own (the
+        // email now has a status), so a reload gets a fresh attempt.
+        if (c.status !== 'unclassified') cache.set(c.id, c);
       }
     }
 

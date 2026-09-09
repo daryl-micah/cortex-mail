@@ -8,6 +8,7 @@ import {
   setLoading,
   setError,
   setClassifications,
+  setClassifying,
 } from '@/store/mailSlice';
 import type { Email, EmailAI } from '@/types/mail';
 
@@ -19,6 +20,8 @@ async function classifyAndDispatch(
 ) {
   const unclassified = emails.filter((e) => !e.ai);
   if (unclassified.length === 0) return;
+
+  dispatch(setClassifying(true));
 
   try {
     const response = await fetch('/api/emails/classify', {
@@ -35,7 +38,10 @@ async function classifyAndDispatch(
       }),
     });
 
-    if (!response.ok) return;
+    if (!response.ok) {
+      dispatch(setClassifying(false));
+      return;
+    }
 
     const data = await response.json();
     const classifications: Array<EmailAI & { id: string }> =
@@ -47,11 +53,12 @@ async function classifyAndDispatch(
       byId[id] = ai;
     }
 
-    if (Object.keys(byId).length > 0) {
-      dispatch(setClassifications(byId));
-    }
+    // Always dispatch, even when empty — setClassifications clears the
+    // classifying flag, which is what lets the Today view stop waiting.
+    dispatch(setClassifications(byId));
   } catch (error) {
     console.warn('Email classification failed:', error);
+    dispatch(setClassifying(false));
   }
 }
 

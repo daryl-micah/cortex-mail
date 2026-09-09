@@ -2,9 +2,17 @@ import { Zap, Clock, RotateCcw, Info, AlertTriangle, Check } from 'lucide-react'
 import type { EmailAI } from '@/types/mail';
 import { cn } from '@/lib/utils';
 
-const STATUS_CONFIG: Record<
-  EmailAI['status'],
-  { label: string; icon: React.ComponentType<{ className?: string }>; className: string }
+// Partial: 'unclassified' deliberately has no entry, so an email the model
+// couldn't read renders no badge rather than a made-up one.
+const STATUS_CONFIG: Partial<
+  Record<
+    EmailAI['status'],
+    {
+      label: string;
+      icon: React.ComponentType<{ className?: string }>;
+      className: string;
+    }
+  >
 > = {
   needs_reply: {
     label: 'Needs Reply',
