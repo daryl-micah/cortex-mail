@@ -1,4 +1,5 @@
-import Groq from 'groq-sdk';
+import type Groq from 'groq-sdk';
+import { getGroq } from './groqClient';
 import {
   AgentThoughtSchema,
   type AgentStep,
@@ -9,7 +10,8 @@ import { buildContext, type ContextMessage } from './contextBuilder';
 import { searchEmails } from './embeddings';
 import { logLLMCall, logAgentRun } from './aiLogger';
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+// Lazy: see lib/groqClient.ts — constructing at module scope crashes the
+// importing route when GROQ_API_KEY is missing.
 
 const MODEL = 'openai/gpt-oss-120b';
 const MAX_ITERATIONS = 8;
@@ -83,7 +85,7 @@ async function callLLM(
 }> {
   const start = Date.now();
 
-  const response = await groq.chat.completions.create({
+  const response = await getGroq().chat.completions.create({
     model: MODEL,
     messages,
     temperature: 0.2,

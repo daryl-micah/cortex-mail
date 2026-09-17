@@ -19,6 +19,8 @@ interface MailState {
   hasMore: boolean;
   /** A classification request is in flight. Drives the Today view skeleton. */
   classifying: boolean;
+  /** Why the last classification attempt failed, if it did. */
+  classifyError: string | null;
 }
 
 const initialState: MailState = {
@@ -36,6 +38,7 @@ const initialState: MailState = {
   nextPageToken: null,
   hasMore: true,
   classifying: false,
+  classifyError: null,
 };
 
 const mailSlice = createSlice({
@@ -76,6 +79,11 @@ const mailSlice = createSlice({
     },
     setClassifying(state, action: PayloadAction<boolean>) {
       state.classifying = action.payload;
+      if (action.payload) state.classifyError = null;
+    },
+    setClassifyError(state, action: PayloadAction<string>) {
+      state.classifyError = action.payload;
+      state.classifying = false;
     },
     setError(state, action: PayloadAction<string>) {
       state.error = action.payload;
@@ -139,6 +147,7 @@ const mailSlice = createSlice({
         if (ai) email.ai = ai;
       }
       state.classifying = false;
+      state.classifyError = null;
     },
     setInsight(
       state,
@@ -180,6 +189,7 @@ export const {
   toggleStar,
   setClassifications,
   setClassifying,
+  setClassifyError,
   setInsight,
   setFilters,
   setCompose,

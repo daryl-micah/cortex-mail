@@ -1,8 +1,9 @@
-import Groq from 'groq-sdk';
+import { getGroq } from './groqClient';
 import { InsightSchema, type Insight } from './schemas';
 import { logLLMCall } from './aiLogger';
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+// Lazy: see lib/groqClient.ts — constructing at module scope crashes the
+// importing route when GROQ_API_KEY is missing.
 const MODEL = 'openai/gpt-oss-120b';
 const MAX_RETRIES = 1;
 const MAX_BODY_CHARS = 6000;
@@ -47,7 +48,7 @@ export async function generateInsight(
   const start = Date.now();
 
   try {
-    const response = await groq.chat.completions.create({
+    const response = await getGroq().chat.completions.create({
       model: MODEL,
       messages: [
         {

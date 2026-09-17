@@ -1,4 +1,4 @@
-import Groq from 'groq-sdk';
+import { getGroq } from './groqClient';
 import { countTokens, countMessageTokens } from './tokenCounter';
 
 // ---------------------------------------------------------------------------
@@ -12,7 +12,8 @@ const RECENT_TURNS_TO_KEEP = 6;
 // Small fast model for summarisation — keeps latency and cost low
 const SUMMARY_MODEL = 'openai/gpt-oss-20b';
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+// Lazy: see lib/groqClient.ts — constructing at module scope crashes the
+// importing route when GROQ_API_KEY is missing.
 
 export interface ContextMessage {
   role: 'user' | 'assistant' | 'system';
@@ -39,7 +40,7 @@ async function summariseTurns(turns: ContextMessage[]): Promise<string> {
     .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
     .join('\n');
 
-  const response = await groq.chat.completions.create({
+  const response = await getGroq().chat.completions.create({
     model: SUMMARY_MODEL,
     messages: [
       {
