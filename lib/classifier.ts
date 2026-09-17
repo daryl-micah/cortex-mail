@@ -1,11 +1,13 @@
-import Groq from 'groq-sdk';
 import {
   ClassificationResponseSchema,
   type EmailClassification,
 } from './schemas';
 import { logLLMCall } from './aiLogger';
+import { getGroq, isGroqConfigured } from './groqClient';
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+/** Whether classification can run at all. False means the key is missing. */
+export const isClassifierConfigured = isGroqConfigured;
+
 const MODEL = 'openai/gpt-oss-120b';
 // gpt-oss is a reasoning model and its reasoning tokens count against
 // max_tokens. A batch of 25 spent most of the budget thinking and got cut off
@@ -53,21 +55,37 @@ async function classifyBatch(
   if (emails.length === 0) return [];
   const start = Date.now();
 
-  const response = await groq.chat.completions.create({
-    model: MODEL,
-    messages: [
-      {
-        role: 'system',
-        content:
-          'You classify emails for an AI-native inbox. Always respond with valid JSON only.',
-      },
-      { role: 'user', content: buildPrompt(emails) },
-    ],
-    temperature: 0.1,
-    max_tokens: MAX_TOKENS,
-    reasoning_effort: 'low',
-    response_format: { type: 'json_object' },
-  });
+  let response;
+  try {
+    response = await getGroq().chat.completions.create({
+      model: MODEL,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You classify emails for an AI-native inbox. Always respond with valid JSON only.',
+        },
+        { role: 'user', content: buildPrompt(emails) },
+      ],
+      temperature: 0.1,
+      max_tokens: MAX_TOKENS,
+      reasoning_effort: 'low',
+      response_format: { type: 'json_object' },
+    });
+  } catch (err) {
+    // A throw here — bad key, rate limit, network — used to skip both logging
+    // branches below, so a total outage left no trace anywhere.
+    logLLMCall({
+      model: MODEL,
+      inputTokens: 0,
+      outputTokens: 0,
+      latencyMs: Date.now() - start,
+      success: false,
+      retryCount: 0,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    throw err;
+  }
 
   const choice = response.choices[0];
   const content = choice?.message?.content ?? '{}';
@@ -129,11 +147,15 @@ async function classifyBatch(
 }
 
 /**
- * Classify a list of emails in batches. Never throws, and always returns one
- * entry per input email — anything the model omitted or failed on comes back
- * as `unclassified` so the caller can cache it and stop asking. Without that
- * the inbox re-requested the same failing emails on every 30s poll and the
- * Today view sat on its loading skeleton forever.
+ * Classify a list of emails in batches, returning one entry per input email —
+ * anything the model omitted comes back as `unclassified` so the caller can
+ * cache it and stop asking. Without that the inbox re-requested the same
+ * failing emails on every 30s poll and the Today view sat on its skeleton
+ * forever.
+ *
+ * Throws only when every batch threw. A total outage is a different thing from
+ * "the model read your mail and had no opinion", and reporting it as the latter
+ * is what made this bug invisible twice.
  */
 export async function classifyEmails(
   emails: ClassifiableEmail[]
@@ -143,14 +165,23 @@ export async function classifyEmails(
     batches.push(emails.slice(i, i + BATCH_SIZE));
   }
 
+  const errors: unknown[] = [];
   const results = await Promise.all(
     batches.map((batch) =>
       classifyBatch(batch).catch((err) => {
         console.warn('[classifier] batch failed:', err);
+        errors.push(err);
         return [] as EmailClassification[];
       })
     )
   );
+
+  if (errors.length === batches.length && batches.length > 0) {
+    const first = errors[0];
+    throw new Error(
+      first instanceof Error ? first.message : String(first)
+    );
+  }
 
   const byId = new Map<string, EmailClassification>();
   for (const c of results.flat()) {

@@ -3,6 +3,7 @@
 import { useAppSelector, useAppDispatch } from '@/store';
 import EmailList from '../mail/components/EmailList';
 import FilterPanel from '../mail/components/FilterPanel';
+import RefreshButton from '../mail/components/RefreshButton';
 import { X } from 'lucide-react';
 import { useMemo, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -182,6 +183,7 @@ export default function InboxView({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <RefreshButton />
           <FilterPanel />
           {Object.keys(filters).length > 0 && (
             <div className="flex flex-row items-center space-x-1">

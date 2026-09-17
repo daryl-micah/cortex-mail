@@ -9,6 +9,7 @@ import {
   setError,
   setClassifications,
   setClassifying,
+  setClassifyError,
 } from '@/store/mailSlice';
 import type { Email, EmailAI } from '@/types/mail';
 
@@ -39,7 +40,15 @@ async function classifyAndDispatch(
     });
 
     if (!response.ok) {
-      dispatch(setClassifying(false));
+      // Surface it. A silent failure here reads as "the model had no opinion
+      // about any of your mail", which is a different and untrue thing.
+      const detail = await response
+        .json()
+        .then((d) => d?.error)
+        .catch(() => null);
+      dispatch(
+        setClassifyError(detail || `Classification failed (${response.status}).`)
+      );
       return;
     }
 
@@ -58,8 +67,28 @@ async function classifyAndDispatch(
     dispatch(setClassifications(byId));
   } catch (error) {
     console.warn('Email classification failed:', error);
-    dispatch(setClassifying(false));
+    dispatch(setClassifyError('Could not reach the classifier.'));
   }
+}
+
+/**
+ * Refetch the inbox and reclassify. Shared by the mount/poll cycle and the
+ * refresh button, so the button can't drift from what polling does.
+ * `silent` leaves the current list on screen instead of blanking it.
+ */
+export async function refreshInbox(
+  dispatch: ReturnType<typeof useAppDispatch>,
+  { silent = false }: { silent?: boolean } = {}
+) {
+  if (!silent) dispatch(setLoading(true));
+
+  const response = await fetch('/api/emails/inbox');
+  if (!response.ok) throw new Error('Failed to fetch emails');
+
+  const data = await response.json();
+  const emails: Email[] = data.emails || [];
+  dispatch(setEmails({ emails, nextPageToken: data.nextPageToken }));
+  await classifyAndDispatch(emails, dispatch);
 }
 
 export function useEmailSync() {
@@ -68,17 +97,7 @@ export function useEmailSync() {
 
   const fetchInbox = async () => {
     try {
-      dispatch(setLoading(true));
-      const response = await fetch('/api/emails/inbox');
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch emails');
-      }
-
-      const data = await response.json();
-      const emails: Email[] = data.emails || [];
-      dispatch(setEmails({ emails, nextPageToken: data.nextPageToken }));
-      classifyAndDispatch(emails, dispatch);
+      await refreshInbox(dispatch);
     } catch (error) {
       console.error('Error fetching inbox:', error);
       dispatch(setError('Failed to load emails, please sign-in again.'));
@@ -87,13 +106,7 @@ export function useEmailSync() {
 
   const fetchInboxSilently = async () => {
     try {
-      const response = await fetch('/api/emails/inbox');
-      if (response.ok) {
-        const data = await response.json();
-        const emails: Email[] = data.emails || [];
-        dispatch(setEmails({ emails, nextPageToken: data.nextPageToken }));
-        classifyAndDispatch(emails, dispatch);
-      }
+      await refreshInbox(dispatch, { silent: true });
     } catch (error) {
       console.error('Silent inbox refresh failed:', error);
     }

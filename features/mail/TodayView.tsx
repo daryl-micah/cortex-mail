@@ -6,6 +6,7 @@ import { useAppDispatch, useAppSelector } from '@/store';
 import { setView } from '@/store/uiSlice';
 import { Zap, Clock } from 'lucide-react';
 import EmailList from './components/EmailList';
+import RefreshButton from './components/RefreshButton';
 import { Skeleton } from '@/components/ui/skeleton';
 
 function getGreeting(): string {
@@ -21,6 +22,7 @@ export default function TodayView() {
   const emails = useAppSelector((state) => state.mail.emails);
   const loading = useAppSelector((state) => state.mail.loading);
   const classifying = useAppSelector((state) => state.mail.classifying);
+  const classifyError = useAppSelector((state) => state.mail.classifyError);
 
   const firstName = session?.user?.name?.split(' ')[0] ?? '';
 
@@ -42,16 +44,34 @@ export default function TodayView() {
 
   return (
     <div className="w-full h-full overflow-y-auto no-scrollbar p-4 sm:p-6">
-      <h1 className="text-xl font-semibold">
-        {getGreeting()}{firstName ? `, ${firstName}` : ''}.
-      </h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold">
+          {getGreeting()}{firstName ? `, ${firstName}` : ''}.
+        </h1>
+        <RefreshButton />
+      </div>
       <p className="text-sm text-muted-foreground mt-1 mb-5">
         {loading || classifying
           ? 'Reading your inbox…'
-          : attentionCount > 0
+          : classifyError
+            ? 'Cortex hasn’t read your inbox yet.'
+            : attentionCount > 0
             ? `${attentionCount} email${attentionCount !== 1 ? 's' : ''} need${attentionCount === 1 ? 's' : ''} your attention.`
             : 'You’re all caught up.'}
       </p>
+
+      {classifyError && !classifying && (
+        <div className="bevel rounded-lg bg-card mb-4 px-4 py-3">
+          <p className="chrome-label text-muted-foreground mb-1">
+            Sorting unavailable
+          </p>
+          <p className="text-sm text-foreground font-email">{classifyError}</p>
+          <p className="text-xs text-muted-foreground mt-1 font-email">
+            Your mail is all here — it just isn’t sorted into Needs Reply and
+            Waiting On until this is fixed.
+          </p>
+        </div>
+      )}
 
       {showSkeleton && !loading && (
         <div className="space-y-2 mb-6">
